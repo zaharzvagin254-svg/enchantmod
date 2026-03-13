@@ -21,8 +21,11 @@ import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 
 @Mod(EnchantMod.MOD_ID)
 public class EnchantMod {
@@ -30,6 +33,9 @@ public class EnchantMod {
     public static final String MOD_ID = "enchantmod";
     public static final Logger LOGGER = LogManager.getLogger();
     private static final Random RANDOM = new Random();
+
+    // Защита от двойного взрыва — храним UUID стрел которые уже взорвались
+    private static final Set<UUID> explodedArrows = new HashSet<>();
 
     public EnchantMod() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
@@ -39,7 +45,7 @@ public class EnchantMod {
     }
 
     // ===================== КРОВАВОЕ ПОГЛОЩЕНИЕ =====================
-    // Шанс 10%/20%/30% восстановить 50% нанесённого урона
+    // Шанс 10%/15%/20% восстановить 50% нанесённого урона
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
@@ -49,8 +55,8 @@ public class EnchantMod {
         );
         if (level <= 0) return;
 
-        float[] chances = {0.0f, 0.10f, 0.20f, 0.30f};
-        float chance = level < chances.length ? chances[level] : 0.30f;
+        float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
+        float chance = level < chances.length ? chances[level] : 0.20f;
 
         if (RANDOM.nextFloat() < chance) {
             float heal = event.getAmount() * 0.50f;
@@ -59,13 +65,16 @@ public class EnchantMod {
     }
 
     // ===================== ВЗРЫВНОЙ ВЫСТРЕЛ =====================
-    // Взрыв при попадании стрелы в любой объект (моб или блок)
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
         if (!(arrow.getOwner() instanceof Player player)) return;
         if (arrow.level().isClientSide()) return;
         if (!(arrow.level() instanceof ServerLevel serverLevel)) return;
+
+        // Защита от двойного взрыва
+        UUID arrowId = arrow.getUUID();
+        if (explodedArrows.contains(arrowId)) return;
 
         ItemStack bow = findEnchantedBow(player);
         int level = EnchantmentHelper.getItemEnchantmentLevel(
@@ -77,37 +86,45 @@ public class EnchantMod {
         float chance = level < chances.length ? chances[level] : 0.50f;
         if (RANDOM.nextFloat() >= chance) return;
 
+        // Запомнить стрелу чтобы не взрывалась дважды
+        explodedArrows.add(arrowId);
+        // Чистим сет чтобы не копилось в памяти
+        if (explodedArrows.size() > 100) explodedArrows.clear();
+
         Vec3 pos = arrow.position();
 
-        // Визуальный взрыв как TNT — звук + частицы, блоки НЕ ломает
+        // Маленький взрыв — размер 1.2 вместо 2.5, блоки не ломает
         serverLevel.explode(
             null,
             pos.x, pos.y, pos.z,
-            2.5f,
+            1.2f,
             Level.ExplosionInteraction.NONE
         );
 
-        // Урон и отталкивание мобов в радиусе 3.5 блока
+        // Урон и отталкивание мобов в радиусе 2.5 блока, себя не бьём
         DamageSource blastDamage = serverLevel.damageSources().explosion(arrow, player);
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
-            new AABB(pos.x - 3.5, pos.y - 3.5, pos.z - 3.5,
-                     pos.x + 3.5, pos.y + 3.5, pos.z + 3.5)
+            new AABB(pos.x - 2.5, pos.y - 2.5, pos.z - 2.5,
+                     pos.x + 2.5, pos.y + 2.5, pos.z + 2.5)
         );
 
         for (LivingEntity mob : nearby) {
+            // Не наносить урон стрелку
             if (mob == player) continue;
-            double dist = mob.position().distanceTo(pos);
-            if (dist > 3.5) continue;
+            if (mob.getUUID().equals(player.getUUID())) continue;
 
-            // Урон от 8 до 2 в зависимости от расстояния
-            float dmg = (float)(8.0 * (1.0 - dist / 3.5));
+            double dist = mob.position().distanceTo(pos);
+            if (dist > 2.5) continue;
+
+            // Урон от 6 до 2
+            float dmg = (float)(6.0 * (1.0 - dist / 2.5));
             mob.hurt(blastDamage, Math.max(dmg, 2.0f));
 
-            // Отталкивание
+            // Небольшое отталкивание
             Vec3 dir = mob.position().subtract(pos).normalize();
             mob.setDeltaMovement(mob.getDeltaMovement().add(
-                dir.x * 1.8, 0.6, dir.z * 1.8
+                dir.x * 1.2, 0.4, dir.z * 1.2
             ));
             mob.hurtMarked = true;
         }
