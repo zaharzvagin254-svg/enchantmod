@@ -4,7 +4,6 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.EnchantedBookItem;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
@@ -57,7 +56,7 @@ public class EnchantMod {
 
         if (!right.is(Items.ENCHANTED_BOOK)) return;
 
-        Map<Enchantment, Integer> bookEnchants = EnchantedBookItem.getEnchantments(right);
+        Map<Enchantment, Integer> bookEnchants = EnchantmentHelper.getEnchantments(right);
 
         for (Enchantment ench : bookEnchants.keySet()) {
             // Взрывной выстрел — только лук или арбалет
