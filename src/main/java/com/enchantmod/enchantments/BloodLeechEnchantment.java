@@ -17,7 +17,6 @@ public class BloodLeechEnchantment extends Enchantment {
         );
     }
 
-    // Только мечи
     @Override
     public boolean canEnchant(ItemStack stack) {
         return stack.getItem() instanceof SwordItem;
@@ -29,19 +28,18 @@ public class BloodLeechEnchantment extends Enchantment {
     }
 
     @Override
-    public int getMaxLevel() {
-        return 3;
+    public boolean isAllowedOnBooks() {
+        return true;
     }
 
     @Override
-    public int getMinCost(int level) {
-        return 20 + (level - 1) * 10;
-    }
+    public int getMaxLevel() { return 3; }
 
     @Override
-    public int getMaxCost(int level) {
-        return getMinCost(level) + 50;
-    }
+    public int getMinCost(int level) { return 20 + (level - 1) * 10; }
+
+    @Override
+    public int getMaxCost(int level) { return getMinCost(level) + 50; }
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
@@ -50,12 +48,8 @@ public class BloodLeechEnchantment extends Enchantment {
     }
 
     @Override
-    public boolean isTradeable() {
-        return true;
-    }
+    public boolean isTradeable() { return true; }
 
     @Override
-    public boolean isDiscoverable() {
-        return true;
-    }
+    public boolean isDiscoverable() { return true; }
 }
