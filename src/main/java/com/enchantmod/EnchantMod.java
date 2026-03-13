@@ -17,6 +17,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.SwordItem;
 import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,8 +34,6 @@ public class EnchantMod {
     public static final String MOD_ID = "enchantmod";
     public static final Logger LOGGER = LogManager.getLogger();
     private static final Random RANDOM = new Random();
-
-    // Защита от двойного взрыва — храним UUID стрел которые уже взорвались
     private static final Set<UUID> explodedArrows = new HashSet<>();
 
     public EnchantMod() {
@@ -45,11 +44,15 @@ public class EnchantMod {
     }
 
     // ===================== КРОВАВОЕ ПОГЛОЩЕНИЕ =====================
-    // Шанс 10%/15%/20% восстановить 50% нанесённого урона
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
+
         ItemStack weapon = player.getMainHandItem();
+
+        // Только меч!
+        if (!(weapon.getItem() instanceof SwordItem)) return;
+
         int level = EnchantmentHelper.getItemEnchantmentLevel(
             ModEnchantments.BLOOD_LEECH.get(), weapon
         );
@@ -76,7 +79,10 @@ public class EnchantMod {
         UUID arrowId = arrow.getUUID();
         if (explodedArrows.contains(arrowId)) return;
 
+        // Ищем лук/арбалет СТРОГО с зачарованием blast_shot
         ItemStack bow = findEnchantedBow(player);
+        if (bow.isEmpty()) return; // нет зачарованного лука — выходим
+
         int level = EnchantmentHelper.getItemEnchantmentLevel(
             ModEnchantments.BLAST_SHOT.get(), bow
         );
@@ -86,14 +92,12 @@ public class EnchantMod {
         float chance = level < chances.length ? chances[level] : 0.50f;
         if (RANDOM.nextFloat() >= chance) return;
 
-        // Запомнить стрелу чтобы не взрывалась дважды
+        // Запомнить стрелу
         explodedArrows.add(arrowId);
-        // Чистим сет чтобы не копилось в памяти
         if (explodedArrows.size() > 100) explodedArrows.clear();
 
         Vec3 pos = arrow.position();
 
-        // Маленький взрыв — размер 1.2 вместо 2.5, блоки не ломает
         serverLevel.explode(
             null,
             pos.x, pos.y, pos.z,
@@ -101,7 +105,6 @@ public class EnchantMod {
             Level.ExplosionInteraction.NONE
         );
 
-        // Урон и отталкивание мобов в радиусе 2.5 блока, себя не бьём
         DamageSource blastDamage = serverLevel.damageSources().explosion(arrow, player);
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
@@ -110,18 +113,15 @@ public class EnchantMod {
         );
 
         for (LivingEntity mob : nearby) {
-            // Не наносить урон стрелку
             if (mob == player) continue;
             if (mob.getUUID().equals(player.getUUID())) continue;
 
             double dist = mob.position().distanceTo(pos);
             if (dist > 2.5) continue;
 
-            // Урон от 6 до 2
             float dmg = (float)(6.0 * (1.0 - dist / 2.5));
             mob.hurt(blastDamage, Math.max(dmg, 2.0f));
 
-            // Небольшое отталкивание
             Vec3 dir = mob.position().subtract(pos).normalize();
             mob.setDeltaMovement(mob.getDeltaMovement().add(
                 dir.x * 1.2, 0.4, dir.z * 1.2
@@ -130,13 +130,14 @@ public class EnchantMod {
         }
     }
 
+    // Ищет ТОЛЬКО лук/арбалет с зачарованием blast_shot
     private ItemStack findEnchantedBow(Player player) {
         for (ItemStack stack : player.getInventory().items) {
-            if ((stack.is(Items.BOW) || stack.is(Items.CROSSBOW))
-                && EnchantmentHelper.getItemEnchantmentLevel(
-                    ModEnchantments.BLAST_SHOT.get(), stack) > 0) {
-                return stack;
-            }
+            if (!stack.is(Items.BOW) && !stack.is(Items.CROSSBOW)) continue;
+            int lvl = EnchantmentHelper.getItemEnchantmentLevel(
+                ModEnchantments.BLAST_SHOT.get(), stack
+            );
+            if (lvl > 0) return stack;
         }
         return ItemStack.EMPTY;
     }
