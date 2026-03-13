@@ -1,20 +1,56 @@
-package com.enchantmod;
+package com.enchantmod.enchantments;
 
-import com.enchantmod.enchantments.BlastShotEnchantment;
-import com.enchantmod.enchantments.BloodLeechEnchantment;
 import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.minecraft.world.item.enchantment.EnchantmentCategory;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.SwordItem;
 
-public class ModEnchantments {
+public class BloodLeechEnchantment extends Enchantment {
 
-    public static final DeferredRegister<Enchantment> ENCHANTMENTS =
-        DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, EnchantMod.MOD_ID);
+    public BloodLeechEnchantment() {
+        super(
+            Rarity.VERY_RARE,
+            EnchantmentCategory.WEAPON,
+            new EquipmentSlot[]{EquipmentSlot.MAINHAND}
+        );
+    }
 
-    public static final RegistryObject<Enchantment> BLAST_SHOT =
-        ENCHANTMENTS.register("blast_shot", BlastShotEnchantment::new);
+    // Разрешаем ТОЛЬКО мечи
+    @Override
+    public boolean canEnchant(ItemStack stack) {
+        return stack.getItem() instanceof SwordItem;
+    }
 
-    public static final RegistryObject<Enchantment> BLOOD_LEECH =
-        ENCHANTMENTS.register("blood_leech", BloodLeechEnchantment::new);
+    @Override
+    public int getMaxLevel() {
+        return 3;
+    }
+
+    @Override
+    public int getMinCost(int level) {
+        return 20 + (level - 1) * 10;
+    }
+
+    @Override
+    public int getMaxCost(int level) {
+        return getMinCost(level) + 50;
+    }
+
+    @Override
+    public boolean checkCompatibility(Enchantment other) {
+        if (other == Enchantments.MOB_LOOTING) return false;
+        return super.checkCompatibility(other);
+    }
+
+    @Override
+    public boolean isTradeable() {
+        return true;
+    }
+
+    @Override
+    public boolean isDiscoverable() {
+        return true;
+    }
 }
