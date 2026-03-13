@@ -1,9 +1,7 @@
 package com.enchantmod;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.screens.inventory.AnvilScreen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -21,24 +19,14 @@ public class ClientSetup {
     @SubscribeEvent
     public static void onItemTooltip(ItemTooltipEvent event) {
         ItemStack stack = event.getItemStack();
+        Map<Enchantment, Integer> enchants;
 
-        // Для зачарованных книг
         if (stack.is(Items.ENCHANTED_BOOK)) {
-            Map<Enchantment, Integer> enchants = net.minecraft.world.item.enchantment.EnchantedBookItem.getEnchantments(stack);
-            for (Enchantment ench : enchants.keySet()) {
-                if (ench == ModEnchantments.BLAST_SHOT.get()) {
-                    event.getToolTip().add(Component.translatable("enchantment.enchantmod.blast_shot.desc")
-                        .withStyle(ChatFormatting.GRAY));
-                }
-                if (ench == ModEnchantments.BLOOD_LEECH.get()) {
-                    event.getToolTip().add(Component.translatable("enchantment.enchantmod.blood_leech.desc")
-                        .withStyle(ChatFormatting.GRAY));
-                }
-            }
+            enchants = EnchantmentHelper.getEnchantments(stack);
+        } else {
+            enchants = EnchantmentHelper.getEnchantments(stack);
         }
 
-        // Для предметов с зачарованием
-        Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
         for (Enchantment ench : enchants.keySet()) {
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
                 event.getToolTip().add(Component.translatable("enchantment.enchantmod.blast_shot.desc")
