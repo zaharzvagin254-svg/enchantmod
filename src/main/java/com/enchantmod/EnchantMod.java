@@ -50,7 +50,7 @@ public class EnchantMod {
 
         ItemStack weapon = player.getMainHandItem();
 
-        // Только меч!
+        // Только меч
         if (!(weapon.getItem() instanceof SwordItem)) return;
 
         int level = EnchantmentHelper.getItemEnchantmentLevel(
@@ -79,25 +79,37 @@ public class EnchantMod {
         UUID arrowId = arrow.getUUID();
         if (explodedArrows.contains(arrowId)) return;
 
-        // Ищем лук/арбалет СТРОГО с зачарованием blast_shot
-        ItemStack bow = findEnchantedBow(player);
-        if (bow.isEmpty()) return; // нет зачарованного лука — выходим
+        // Проверяем зачарование на луке/арбалете в инвентаре
+        int level = 0;
+        for (ItemStack stack : player.getInventory().items) {
+            if (!stack.is(Items.BOW) && !stack.is(Items.CROSSBOW)) continue;
+            int lvl = EnchantmentHelper.getItemEnchantmentLevel(
+                ModEnchantments.BLAST_SHOT.get(), stack
+            );
+            if (lvl > level) level = lvl;
+        }
+        // Также проверяем руки
+        for (ItemStack stack : player.getHandSlots()) {
+            if (!stack.is(Items.BOW) && !stack.is(Items.CROSSBOW)) continue;
+            int lvl = EnchantmentHelper.getItemEnchantmentLevel(
+                ModEnchantments.BLAST_SHOT.get(), stack
+            );
+            if (lvl > level) level = lvl;
+        }
 
-        int level = EnchantmentHelper.getItemEnchantmentLevel(
-            ModEnchantments.BLAST_SHOT.get(), bow
-        );
         if (level <= 0) return;
 
         float[] chances = {0.0f, 0.20f, 0.35f, 0.50f};
         float chance = level < chances.length ? chances[level] : 0.50f;
         if (RANDOM.nextFloat() >= chance) return;
 
-        // Запомнить стрелу
+        // Запоминаем стрелу чтобы не взрывалась дважды
         explodedArrows.add(arrowId);
         if (explodedArrows.size() > 100) explodedArrows.clear();
 
         Vec3 pos = arrow.position();
 
+        // Визуальный взрыв — звук + частицы, блоки не ломает
         serverLevel.explode(
             null,
             pos.x, pos.y, pos.z,
@@ -105,6 +117,7 @@ public class EnchantMod {
             Level.ExplosionInteraction.NONE
         );
 
+        // Урон и отталкивание мобов
         DamageSource blastDamage = serverLevel.damageSources().explosion(arrow, player);
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
@@ -128,17 +141,5 @@ public class EnchantMod {
             ));
             mob.hurtMarked = true;
         }
-    }
-
-    // Ищет ТОЛЬКО лук/арбалет с зачарованием blast_shot
-    private ItemStack findEnchantedBow(Player player) {
-        for (ItemStack stack : player.getInventory().items) {
-            if (!stack.is(Items.BOW) && !stack.is(Items.CROSSBOW)) continue;
-            int lvl = EnchantmentHelper.getItemEnchantmentLevel(
-                ModEnchantments.BLAST_SHOT.get(), stack
-            );
-            if (lvl > 0) return stack;
-        }
-        return ItemStack.EMPTY;
     }
 }
