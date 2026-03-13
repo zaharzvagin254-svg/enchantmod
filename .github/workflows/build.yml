@@ -11,6 +11,10 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+      - name: Download Gradle Wrapper JAR
+        run: |
+          New-Item -ItemType Directory -Force -Path gradle\wrapper
+          Invoke-WebRequest -Uri "https://github.com/gradle/gradle/raw/v8.1.1/gradle/wrapper/gradle-wrapper.jar" -OutFile "gradle\wrapper\gradle-wrapper.jar"
       - name: Build
         run: .\gradlew.bat build
       - uses: actions/upload-artifact@v4
