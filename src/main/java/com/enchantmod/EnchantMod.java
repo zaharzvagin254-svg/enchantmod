@@ -3,8 +3,8 @@ package com.enchantmod;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -48,25 +48,21 @@ public class EnchantMod {
         LOGGER.info("[EnchantMod] Loaded!");
     }
 
-    // ===================== НАКОВАЛЬНЯ — блокируем неправильные комбинации =====================
+    // Anvil check - block wrong enchantment combinations
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
-        ItemStack left = event.getLeft();   // предмет который зачаровываем
-        ItemStack right = event.getRight(); // книга или второй предмет
-
+        ItemStack left = event.getLeft();
+        ItemStack right = event.getRight();
         if (!right.is(Items.ENCHANTED_BOOK)) return;
 
         Map<Enchantment, Integer> bookEnchants = EnchantmentHelper.getEnchantments(right);
-
         for (Enchantment ench : bookEnchants.keySet()) {
-            // Взрывной выстрел — только лук или арбалет
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
                 if (!(left.getItem() instanceof BowItem) && !(left.getItem() instanceof CrossbowItem)) {
                     event.setCanceled(true);
                     return;
                 }
             }
-            // Кровавое поглощение — только меч
             if (ench == ModEnchantments.BLOOD_LEECH.get()) {
                 if (!(left.getItem() instanceof SwordItem)) {
                     event.setCanceled(true);
@@ -76,29 +72,23 @@ public class EnchantMod {
         }
     }
 
-    // ===================== КРОВАВОЕ ПОГЛОЩЕНИЕ =====================
+    // Blood Leech
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
-
         ItemStack weapon = player.getMainHandItem();
         if (!(weapon.getItem() instanceof SwordItem)) return;
-
-        int level = EnchantmentHelper.getItemEnchantmentLevel(
-            ModEnchantments.BLOOD_LEECH.get(), weapon
-        );
+        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLOOD_LEECH.get(), weapon);
         if (level <= 0) return;
-
         float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
         float chance = level < chances.length ? chances[level] : 0.20f;
-
         if (RANDOM.nextFloat() < chance) {
             float heal = event.getAmount() * 0.50f;
             if (heal > 0) player.heal(heal);
         }
     }
 
-    // ===================== ВЗРЫВНОЙ ВЫСТРЕЛ =====================
+    // Blast Shot
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -109,25 +99,17 @@ public class EnchantMod {
         UUID arrowId = arrow.getUUID();
         if (explodedArrows.contains(arrowId)) return;
 
-        // Только лук/арбалет в руке
         ItemStack mainHand = player.getMainHandItem();
         int level = 0;
-
         if (mainHand.is(Items.BOW) || mainHand.is(Items.CROSSBOW)) {
-            level = EnchantmentHelper.getItemEnchantmentLevel(
-                ModEnchantments.BLAST_SHOT.get(), mainHand
-            );
+            level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), mainHand);
         }
-
         if (level <= 0) {
             ItemStack offHand = player.getOffhandItem();
             if (offHand.is(Items.BOW) || offHand.is(Items.CROSSBOW)) {
-                level = EnchantmentHelper.getItemEnchantmentLevel(
-                    ModEnchantments.BLAST_SHOT.get(), offHand
-                );
+                level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), offHand);
             }
         }
-
         if (level <= 0) return;
 
         float[] chances = {0.0f, 0.20f, 0.35f, 0.50f};
@@ -138,33 +120,21 @@ public class EnchantMod {
         if (explodedArrows.size() > 100) explodedArrows.clear();
 
         Vec3 pos = arrow.position();
-
-        serverLevel.explode(
-            null,
-            pos.x, pos.y, pos.z,
-            1.2f,
-            Level.ExplosionInteraction.NONE
-        );
+        serverLevel.explode(null, pos.x, pos.y, pos.z, 1.2f, Level.ExplosionInteraction.NONE);
 
         DamageSource blastDamage = serverLevel.damageSources().explosion(arrow, player);
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
-            new AABB(pos.x - 2.5, pos.y - 2.5, pos.z - 2.5,
-                     pos.x + 2.5, pos.y + 2.5, pos.z + 2.5)
+            new AABB(pos.x - 2.5, pos.y - 2.5, pos.z - 2.5, pos.x + 2.5, pos.y + 2.5, pos.z + 2.5)
         );
-
         for (LivingEntity mob : nearby) {
             if (mob == player) continue;
             double dist = mob.position().distanceTo(pos);
             if (dist > 2.5) continue;
-
             float dmg = (float)(6.0 * (1.0 - dist / 2.5));
             mob.hurt(blastDamage, Math.max(dmg, 2.0f));
-
             Vec3 dir = mob.position().subtract(pos).normalize();
-            mob.setDeltaMovement(mob.getDeltaMovement().add(
-                dir.x * 1.2, 0.4, dir.z * 1.2
-            ));
+            mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
             mob.hurtMarked = true;
         }
     }
