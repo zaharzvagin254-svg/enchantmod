@@ -81,7 +81,6 @@ public class EnchantMod {
                 null,
                 pos.x, pos.y, pos.z,
                 2.5f,
-                false,
                 Explosion.BlockInteraction.KEEP
             );
             // Extra knockback to nearby mobs
