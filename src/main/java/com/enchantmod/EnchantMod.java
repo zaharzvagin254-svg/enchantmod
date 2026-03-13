@@ -1,11 +1,10 @@
 package com.enchantmod;
 
-import com.enchantmod.enchantments.BlastShotEnchantment;
-import com.enchantmod.enchantments.BloodLeechEnchantment;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
@@ -36,9 +35,11 @@ public class EnchantMod {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModEnchantments.ENCHANTMENTS.register(modBus);
         MinecraftForge.EVENT_BUS.register(this);
-        LOGGER.info("[EnchantMod] Loaded! Blast Shot and Blood Leech enchantments added.");
+        LOGGER.info("[EnchantMod] Loaded!");
     }
 
+    // ===================== КРОВАВОЕ ПОГЛОЩЕНИЕ =====================
+    // Шанс 10%/20%/30% восстановить 50% нанесённого урона
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
@@ -47,10 +48,18 @@ public class EnchantMod {
             ModEnchantments.BLOOD_LEECH.get(), weapon
         );
         if (level <= 0) return;
-        float healAmount = event.getAmount() * level * 0.05f;
-        if (healAmount > 0) player.heal(healAmount);
+
+        float[] chances = {0.0f, 0.10f, 0.20f, 0.30f};
+        float chance = level < chances.length ? chances[level] : 0.30f;
+
+        if (RANDOM.nextFloat() < chance) {
+            float heal = event.getAmount() * 0.50f;
+            if (heal > 0) player.heal(heal);
+        }
     }
 
+    // ===================== ВЗРЫВНОЙ ВЫСТРЕЛ =====================
+    // Взрыв при попадании стрелы в любой объект (моб или блок)
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -70,28 +79,35 @@ public class EnchantMod {
 
         Vec3 pos = arrow.position();
 
-        // Damage nearby mobs manually without explosion block damage
-        List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
-            LivingEntity.class,
-            new AABB(pos.x - 3, pos.y - 3, pos.z - 3,
-                     pos.x + 3, pos.y + 3, pos.z + 3)
+        // Визуальный взрыв как TNT — звук + частицы, блоки НЕ ломает
+        serverLevel.explode(
+            null,
+            pos.x, pos.y, pos.z,
+            2.5f,
+            Level.ExplosionInteraction.NONE
         );
 
-        DamageSource blastDamage = serverLevel.damageSources().explosion(null, player);
+        // Урон и отталкивание мобов в радиусе 3.5 блока
+        DamageSource blastDamage = serverLevel.damageSources().explosion(arrow, player);
+        List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
+            LivingEntity.class,
+            new AABB(pos.x - 3.5, pos.y - 3.5, pos.z - 3.5,
+                     pos.x + 3.5, pos.y + 3.5, pos.z + 3.5)
+        );
 
         for (LivingEntity mob : nearby) {
             if (mob == player) continue;
             double dist = mob.position().distanceTo(pos);
-            if (dist > 3.0) continue;
+            if (dist > 3.5) continue;
 
-            // Damage scaled by distance
-            float dmg = (float)(5.0 * (1.0 - dist / 3.0));
-            mob.hurt(blastDamage, dmg);
+            // Урон от 8 до 2 в зависимости от расстояния
+            float dmg = (float)(8.0 * (1.0 - dist / 3.5));
+            mob.hurt(blastDamage, Math.max(dmg, 2.0f));
 
-            // Knockback
+            // Отталкивание
             Vec3 dir = mob.position().subtract(pos).normalize();
             mob.setDeltaMovement(mob.getDeltaMovement().add(
-                dir.x * 1.5, 0.5, dir.z * 1.5
+                dir.x * 1.8, 0.6, dir.z * 1.8
             ));
             mob.hurtMarked = true;
         }
@@ -100,7 +116,8 @@ public class EnchantMod {
     private ItemStack findEnchantedBow(Player player) {
         for (ItemStack stack : player.getInventory().items) {
             if ((stack.is(Items.BOW) || stack.is(Items.CROSSBOW))
-                && EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), stack) > 0) {
+                && EnchantmentHelper.getItemEnchantmentLevel(
+                    ModEnchantments.BLAST_SHOT.get(), stack) > 0) {
                 return stack;
             }
         }
