@@ -132,19 +132,13 @@ public class EnchantMod {
             }
         }
 
-        // Infernum - меч: нужно Воспламенение, заменяем обычный огонь синим
         if (isSword(weapon) && hasInfernum(weapon) && hasFireEnchant(weapon)) {
             LivingEntity target = event.getEntity();
-            // Применяем синий огонь
             target.addEffect(new MobEffectInstance(
                 ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
             ));
-            // Держим ванильный огонь чтобы RenderLayer видел isOnFire()
-            // но отменяем его через эффект который наносит наш урон
         }
 
-        // Блокируем ванильный урон от огня если есть Инфернум
-        // (наш BlueHellfireEffect сам наносит урон x2)
         if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
             LivingEntity target = event.getEntity();
             if (target.hasEffect(ModEffects.BLUE_HELLFIRE.get())) {
@@ -164,7 +158,6 @@ public class EnchantMod {
         ItemStack offHand = player.getOffhandItem();
         ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
 
-        // Infernum - лук: нужен Заговор огня
         if (bow != null && hasInfernum(bow) && hasFireEnchant(bow)) {
             if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
                 if (entityHit.getEntity() instanceof LivingEntity target) {
