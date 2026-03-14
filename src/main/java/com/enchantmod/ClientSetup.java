@@ -20,19 +20,24 @@ public class ClientSetup {
         ItemStack stack = event.getItemStack();
         Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
 
-        boolean addedBlastDesc = false;
-        boolean addedLeechDesc = false;
+        // Проверяем что описание ещё не добавлено
+        String tooltipText = event.getToolTip().stream()
+            .map(c -> c.getString())
+            .reduce("", String::concat);
 
-        for (Enchantment ench : enchants.keySet()) {
-            if (ench == ModEnchantments.BLAST_SHOT.get() && !addedBlastDesc) {
+        if (enchants.containsKey(ModEnchantments.BLAST_SHOT.get())) {
+            String desc = Component.translatable("enchantment.enchantmod.blast_shot.desc").getString();
+            if (!tooltipText.contains(desc)) {
                 event.getToolTip().add(Component.translatable("enchantment.enchantmod.blast_shot.desc")
                     .withStyle(ChatFormatting.GRAY));
-                addedBlastDesc = true;
             }
-            if (ench == ModEnchantments.BLOOD_LEECH.get() && !addedLeechDesc) {
+        }
+
+        if (enchants.containsKey(ModEnchantments.BLOOD_LEECH.get())) {
+            String desc = Component.translatable("enchantment.enchantmod.blood_leech.desc").getString();
+            if (!tooltipText.contains(desc)) {
                 event.getToolTip().add(Component.translatable("enchantment.enchantmod.blood_leech.desc")
                     .withStyle(ChatFormatting.GRAY));
-                addedLeechDesc = true;
             }
         }
     }
