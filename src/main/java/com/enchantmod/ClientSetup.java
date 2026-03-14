@@ -20,7 +20,6 @@ public class ClientSetup {
         ItemStack stack = event.getItemStack();
         Map<Enchantment, Integer> enchants = EnchantmentHelper.getEnchantments(stack);
 
-        // Проверяем что описание ещё не добавлено
         String tooltipText = event.getToolTip().stream()
             .map(c -> c.getString())
             .reduce("", String::concat);
@@ -33,10 +32,10 @@ public class ClientSetup {
             }
         }
 
-        if (enchants.containsKey(ModEnchantments.BLOOD_LEECH.get())) {
-            String desc = Component.translatable("enchantment.enchantmod.blood_leech.desc").getString();
+        if (enchants.containsKey(ModEnchantments.VAMPIRISM.get())) {
+            String desc = Component.translatable("enchantment.enchantmod.vampirism.desc").getString();
             if (!tooltipText.contains(desc)) {
-                event.getToolTip().add(Component.translatable("enchantment.enchantmod.blood_leech.desc")
+                event.getToolTip().add(Component.translatable("enchantment.enchantmod.vampirism.desc")
                     .withStyle(ChatFormatting.GRAY));
             }
         }
