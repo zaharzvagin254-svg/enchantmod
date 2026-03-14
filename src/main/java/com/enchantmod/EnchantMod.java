@@ -1,5 +1,7 @@
 package com.enchantmod;
 
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
@@ -22,6 +24,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.CrossbowItem;
+import net.minecraft.world.item.SwordItem;
 import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +55,14 @@ public class EnchantMod {
         return stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem;
     }
 
+    // Только SwordItem и тег swords - без атрибутов
+    private boolean isSword(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        if (stack.getItem() instanceof SwordItem) return true;
+        if (stack.is(ItemTags.SWORDS)) return true;
+        return false;
+    }
+
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
@@ -63,7 +74,7 @@ public class EnchantMod {
                 if (!isBow(left)) { event.setCanceled(true); return; }
             }
             if (ench == ModEnchantments.BLOOD_LEECH.get()) {
-                if (!left.is(ItemTags.SWORDS)) { event.setCanceled(true); return; }
+                if (!isSword(left)) { event.setCanceled(true); return; }
             }
         }
     }
@@ -72,14 +83,23 @@ public class EnchantMod {
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
-        if (!weapon.is(ItemTags.SWORDS)) return;
+        if (!isSword(weapon)) return;
         int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLOOD_LEECH.get(), weapon);
         if (level <= 0) return;
         float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
         float chance = level < chances.length ? chances[level] : 0.20f;
         if (RANDOM.nextFloat() < chance) {
             float heal = event.getAmount() * 0.50f;
-            if (heal > 0) player.heal(heal);
+            if (heal > 0) {
+                player.heal(heal);
+                player.level().playSound(
+                    null,
+                    player.getX(), player.getY(), player.getZ(),
+                    SoundEvents.EXPERIENCE_ORB_PICKUP,
+                    SoundSource.PLAYERS,
+                    0.5f, 1.8f
+                );
+            }
         }
     }
 
@@ -125,8 +145,8 @@ public class EnchantMod {
             if (mob == player) continue;
             double dist = mob.position().distanceTo(pos);
             if (dist > 2.5) continue;
-            float dmg = (float)(6.0 * (1.0 - dist / 2.5));
-            mob.hurt(blastDamage, Math.max(dmg, 2.0f));
+            // Фиксированный урон 6, не зависит от расстояния
+            mob.hurt(blastDamage, 6.0f);
             Vec3 dir = mob.position().subtract(pos).normalize();
             mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
             mob.hurtMarked = true;
