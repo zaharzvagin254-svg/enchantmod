@@ -5,6 +5,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -16,6 +19,7 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AnvilUpdateEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -45,6 +49,9 @@ public class EnchantMod {
     private static final Random RANDOM = new Random();
     private static final Set<UUID> explodedArrows = new HashSet<>();
 
+    // UUID для модификатора скорости атаки
+    private static final UUID BLADE_FURY_UUID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+
     public EnchantMod() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModEnchantments.ENCHANTMENTS.register(modBus);
@@ -63,6 +70,7 @@ public class EnchantMod {
         return false;
     }
 
+    // Наковальня - блокируем неправильные комбинации
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
@@ -72,8 +80,16 @@ public class EnchantMod {
         for (Enchantment ench : bookEnchants.keySet()) {
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
                 if (!isBow(left)) { event.setCanceled(true); return; }
+                // Проверяем что на луке нет несовместимых чар
+                Map<Enchantment, Integer> leftEnchants = EnchantmentHelper.getEnchantments(left);
+                for (Enchantment existing : leftEnchants.keySet()) {
+                    if (!ench.isCompatibleWith(existing)) { event.setCanceled(true); return; }
+                }
             }
             if (ench == ModEnchantments.VAMPIRISM.get()) {
+                if (!isSword(left)) { event.setCanceled(true); return; }
+            }
+            if (ench == ModEnchantments.BLADE_FURY.get()) {
                 if (!isSword(left)) { event.setCanceled(true); return; }
             }
         }
@@ -104,7 +120,38 @@ public class EnchantMod {
         }
     }
 
-    // Blast Shot - I=30%/5dmg, II=40%/7dmg
+    // Blade Fury - ускорение перезарядки меча через атрибут ATTACK_SPEED
+    // Level 1: +0.5x скорости (1.5x), Level 2: +1.0x скорости (2x)
+    @SubscribeEvent
+    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
+        Player player = event.player;
+        ItemStack weapon = player.getMainHandItem();
+
+        AttributeInstance attackSpeed = player.getAttribute(Attributes.ATTACK_SPEED);
+        if (attackSpeed == null) return;
+
+        // Убираем старый модификатор
+        attackSpeed.removeModifier(BLADE_FURY_UUID);
+
+        if (!isSword(weapon)) return;
+        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLADE_FURY.get(), weapon);
+        if (level <= 0) return;
+
+        // Level 1: +0.5 (базовая скорость 4.0, станет ~6.0 = 1.5x)
+        // Level 2: +4.0 (станет ~8.0 = 2x)
+        double[] speedBonus = {0.0, 2.0, 4.0};
+        double bonus = level < speedBonus.length ? speedBonus[level] : 4.0;
+
+        attackSpeed.addTransientModifier(new AttributeModifier(
+            BLADE_FURY_UUID,
+            "blade_fury_speed",
+            bonus,
+            AttributeModifier.Operation.ADDITION
+        ));
+    }
+
+    // Blast Shot
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -140,7 +187,6 @@ public class EnchantMod {
         float[] damages = {0.0f, 5.0f, 7.0f};
         float dmg = level < damages.length ? damages[level] : 7.0f;
 
-        // Определяем в кого попала стрела чтобы не отменять его урон
         LivingEntity hitTarget = null;
         if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
             if (entityHit.getEntity() instanceof LivingEntity le) {
@@ -149,8 +195,6 @@ public class EnchantMod {
         }
         final LivingEntity finalHitTarget = hitTarget;
 
-        // Сначала наносим урон окружающим - используем magic урон (не explosion)
-        // чтобы не конфликтовать с уроном стрелы
         DamageSource blastDamage = serverLevel.damageSources().magic();
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
@@ -158,9 +202,7 @@ public class EnchantMod {
         );
         for (LivingEntity mob : nearby) {
             if (mob == player) continue;
-            // Не наносим доп урон мобу в которого попала стрела - он уже получит урон от стрелы
             if (mob == finalHitTarget) {
-                // Только отталкиваем
                 Vec3 dir = mob.position().subtract(pos).normalize();
                 mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
                 mob.hurtMarked = true;
@@ -174,7 +216,6 @@ public class EnchantMod {
             mob.hurtMarked = true;
         }
 
-        // Взрыв только визуальный - после урона
         serverLevel.explode(null, pos.x, pos.y, pos.z, 1.2f, Level.ExplosionInteraction.NONE);
     }
 }
