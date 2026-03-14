@@ -2,5 +2,7 @@
   "enchantment.enchantmod.blast_shot": "Blast Shot",
   "enchantment.enchantmod.blast_shot.desc": "Arrows have a chance to explode on impact. Does not destroy blocks.",
   "enchantment.enchantmod.vampirism": "Vampirism",
-  "enchantment.enchantmod.vampirism.desc": "Chance to restore 50% of damage dealt as health."
+  "enchantment.enchantmod.vampirism.desc": "Chance to restore 50% of damage dealt as health.",
+  "enchantment.enchantmod.blade_fury": "Blade Fury",
+  "enchantment.enchantmod.blade_fury.desc": "Increases sword attack speed. Level I: 1.5x faster. Level II: 2x faster."
 }
