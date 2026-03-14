@@ -1,11 +1,11 @@
 package com.enchantmod.enchantments;
 
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentCategory;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.SwordItem;
 
 public class BloodLeechEnchantment extends Enchantment {
 
@@ -19,27 +19,28 @@ public class BloodLeechEnchantment extends Enchantment {
 
     @Override
     public boolean canEnchant(ItemStack stack) {
-        return stack.getItem() instanceof SwordItem;
+        return stack.is(ItemTags.SWORDS);
     }
 
     @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack) {
-        return stack.getItem() instanceof SwordItem;
+        return stack.is(ItemTags.SWORDS);
     }
 
     @Override
-    public boolean isAllowedOnBooks() {
-        return true;
+    public int getMaxLevel() {
+        return 3;
     }
 
     @Override
-    public int getMaxLevel() { return 3; }
+    public int getMinCost(int level) {
+        return 20 + (level - 1) * 10;
+    }
 
     @Override
-    public int getMinCost(int level) { return 20 + (level - 1) * 10; }
-
-    @Override
-    public int getMaxCost(int level) { return getMinCost(level) + 50; }
+    public int getMaxCost(int level) {
+        return getMinCost(level) + 50;
+    }
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
@@ -48,8 +49,12 @@ public class BloodLeechEnchantment extends Enchantment {
     }
 
     @Override
-    public boolean isTradeable() { return true; }
+    public boolean isTradeable() {
+        return true;
+    }
 
     @Override
-    public boolean isDiscoverable() { return true; }
+    public boolean isDiscoverable() {
+        return true;
+    }
 }
