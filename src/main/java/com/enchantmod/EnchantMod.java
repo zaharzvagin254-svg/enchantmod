@@ -11,6 +11,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
@@ -48,8 +49,6 @@ public class EnchantMod {
     public static final Logger LOGGER = LogManager.getLogger();
     private static final Random RANDOM = new Random();
     private static final Set<UUID> explodedArrows = new HashSet<>();
-
-    // UUID для модификатора скорости атаки
     private static final UUID BLADE_FURY_UUID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
 
     public EnchantMod() {
@@ -70,7 +69,11 @@ public class EnchantMod {
         return false;
     }
 
-    // Наковальня - блокируем неправильные комбинации
+    private boolean hasFireEnchant(ItemStack stack) {
+        return EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, stack) > 0
+            || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, stack) > 0;
+    }
+
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
@@ -80,7 +83,6 @@ public class EnchantMod {
         for (Enchantment ench : bookEnchants.keySet()) {
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
                 if (!isBow(left)) { event.setCanceled(true); return; }
-                // Проверяем что на луке нет несовместимых чар
                 Map<Enchantment, Integer> leftEnchants = EnchantmentHelper.getEnchantments(left);
                 for (Enchantment existing : leftEnchants.keySet()) {
                     if (!ench.isCompatibleWith(existing)) { event.setCanceled(true); return; }
@@ -92,6 +94,10 @@ public class EnchantMod {
             if (ench == ModEnchantments.BLADE_FURY.get()) {
                 if (!isSword(left)) { event.setCanceled(true); return; }
             }
+            if (ench == ModEnchantments.INFERNUM.get()) {
+                boolean valid = isSword(left) || isBow(left);
+                if (!valid) { event.setCanceled(true); return; }
+            }
         }
     }
 
@@ -100,58 +106,42 @@ public class EnchantMod {
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
-        if (!isSword(weapon)) return;
-        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.VAMPIRISM.get(), weapon);
-        if (level <= 0) return;
-        float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
-        float chance = level < chances.length ? chances[level] : 0.20f;
-        if (RANDOM.nextFloat() < chance) {
-            float heal = event.getAmount() * 0.50f;
-            if (heal > 0) {
-                player.heal(heal);
-                player.level().playSound(
-                    null,
-                    player.getX(), player.getY(), player.getZ(),
-                    SoundEvents.EXPERIENCE_ORB_PICKUP,
-                    SoundSource.PLAYERS,
-                    0.5f, 1.8f
-                );
+
+        // Vampirism
+        if (isSword(weapon)) {
+            int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.VAMPIRISM.get(), weapon);
+            if (level > 0) {
+                float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
+                float chance = level < chances.length ? chances[level] : 0.20f;
+                if (RANDOM.nextFloat() < chance) {
+                    float heal = event.getAmount() * 0.50f;
+                    if (heal > 0) {
+                        player.heal(heal);
+                        player.level().playSound(null,
+                            player.getX(), player.getY(), player.getZ(),
+                            SoundEvents.EXPERIENCE_ORB_PICKUP,
+                            SoundSource.PLAYERS, 0.5f, 1.8f);
+                    }
+                }
+            }
+        }
+
+        // Infernum - меч: заменяем обычный огонь на синий адский (x2 урон)
+        if (isSword(weapon)) {
+            int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), weapon);
+            if (infLevel > 0 && hasFireEnchant(weapon)) {
+                if (event.getEntity().isOnFire() && event.getSource().isFire()) {
+                    // Наносим дополнительный урон огнем (x2 - базовый уже посчитан)
+                    event.getEntity().hurt(
+                        event.getEntity().level().damageSources().inFire(),
+                        event.getAmount()
+                    );
+                }
             }
         }
     }
 
-    // Blade Fury - ускорение перезарядки меча через атрибут ATTACK_SPEED
-    // Level 1: +0.5x скорости (1.5x), Level 2: +1.0x скорости (2x)
-    @SubscribeEvent
-    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
-        if (event.phase != TickEvent.Phase.START) return;
-        Player player = event.player;
-        ItemStack weapon = player.getMainHandItem();
-
-        AttributeInstance attackSpeed = player.getAttribute(Attributes.ATTACK_SPEED);
-        if (attackSpeed == null) return;
-
-        // Убираем старый модификатор
-        attackSpeed.removeModifier(BLADE_FURY_UUID);
-
-        if (!isSword(weapon)) return;
-        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLADE_FURY.get(), weapon);
-        if (level <= 0) return;
-
-        // Level 1: +0.5 (базовая скорость 4.0, станет ~6.0 = 1.5x)
-        // Level 2: +4.0 (станет ~8.0 = 2x)
-        double[] speedBonus = {0.0, 0.8, 1.6};
-        double bonus = level < speedBonus.length ? speedBonus[level] : 4.0;
-
-        attackSpeed.addTransientModifier(new AttributeModifier(
-            BLADE_FURY_UUID,
-            "blade_fury_speed",
-            bonus,
-            AttributeModifier.Operation.ADDITION
-        ));
-    }
-
-    // Blast Shot
+    // Infernum - стрела: поджигаем с двойным уроном огня
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -159,19 +149,34 @@ public class EnchantMod {
         if (arrow.level().isClientSide()) return;
         if (!(arrow.level() instanceof ServerLevel serverLevel)) return;
 
+        // Infernum для лука
+        ItemStack bow = null;
+        ItemStack mainHand = player.getMainHandItem();
+        ItemStack offHand = player.getOffhandItem();
+        if (isBow(mainHand)) bow = mainHand;
+        else if (isBow(offHand)) bow = offHand;
+
+        if (bow != null) {
+            int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), bow);
+            if (infLevel > 0 && hasFireEnchant(bow)) {
+                if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
+                    if (entityHit.getEntity() instanceof LivingEntity target) {
+                        // Поджигаем на 8 секунд (x2 от обычного Flame = 5 сек)
+                        target.setSecondsOnFire(8);
+                        // Доп урон огнем сразу
+                        target.hurt(serverLevel.damageSources().inFire(), 2.0f);
+                    }
+                }
+            }
+        }
+
+        // Blast Shot
         UUID arrowId = arrow.getUUID();
         if (explodedArrows.contains(arrowId)) return;
 
         int level = 0;
-        ItemStack mainHand = player.getMainHandItem();
-        if (isBow(mainHand)) {
-            level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), mainHand);
-        }
-        if (level <= 0) {
-            ItemStack offHand = player.getOffhandItem();
-            if (isBow(offHand)) {
-                level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), offHand);
-            }
+        if (bow != null && isBow(bow)) {
+            level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), bow);
         }
         if (level <= 0) return;
 
@@ -183,28 +188,25 @@ public class EnchantMod {
         if (explodedArrows.size() > 100) explodedArrows.clear();
 
         Vec3 pos = arrow.position();
-
         float[] damages = {0.0f, 5.0f, 7.0f};
         float dmg = level < damages.length ? damages[level] : 7.0f;
 
         LivingEntity hitTarget = null;
         if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
-            if (entityHit.getEntity() instanceof LivingEntity le) {
-                hitTarget = le;
-            }
+            if (entityHit.getEntity() instanceof LivingEntity le) hitTarget = le;
         }
         final LivingEntity finalHitTarget = hitTarget;
 
         DamageSource blastDamage = serverLevel.damageSources().magic();
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
-            new AABB(pos.x - 2.5, pos.y - 2.5, pos.z - 2.5, pos.x + 2.5, pos.y + 2.5, pos.z + 2.5)
+            new AABB(pos.x-2.5, pos.y-2.5, pos.z-2.5, pos.x+2.5, pos.y+2.5, pos.z+2.5)
         );
         for (LivingEntity mob : nearby) {
             if (mob == player) continue;
             if (mob == finalHitTarget) {
                 Vec3 dir = mob.position().subtract(pos).normalize();
-                mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
+                mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x*1.2, 0.4, dir.z*1.2));
                 mob.hurtMarked = true;
                 continue;
             }
@@ -212,10 +214,34 @@ public class EnchantMod {
             if (dist > 2.5) continue;
             mob.hurt(blastDamage, dmg);
             Vec3 dir = mob.position().subtract(pos).normalize();
-            mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
+            mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x*1.2, 0.4, dir.z*1.2));
             mob.hurtMarked = true;
         }
-
         serverLevel.explode(null, pos.x, pos.y, pos.z, 1.2f, Level.ExplosionInteraction.NONE);
+    }
+
+    // Blade Fury - 1 уровень, 1.3x скорость атаки
+    @SubscribeEvent
+    public void onPlayerTick(TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.START) return;
+        Player player = event.player;
+        ItemStack weapon = player.getMainHandItem();
+
+        AttributeInstance attackSpeed = player.getAttribute(Attributes.ATTACK_SPEED);
+        if (attackSpeed == null) return;
+
+        attackSpeed.removeModifier(BLADE_FURY_UUID);
+
+        if (!isSword(weapon)) return;
+        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLADE_FURY.get(), weapon);
+        if (level <= 0) return;
+
+        // Базовая скорость 4.0, +1.2 = 5.2 (примерно 1.3x)
+        attackSpeed.addTransientModifier(new AttributeModifier(
+            BLADE_FURY_UUID,
+            "blade_fury_speed",
+            1.2,
+            AttributeModifier.Operation.ADDITION
+        ));
     }
 }
