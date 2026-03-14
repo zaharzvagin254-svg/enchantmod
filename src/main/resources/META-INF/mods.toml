@@ -2,12 +2,15 @@ modLoader="javafml"
 loaderVersion="[47,)"
 license="MIT"
 
+[[mixins]]
+config="enchantmod.mixins.json"
+
 [[mods]]
 modId="enchantmod"
 version="1.0.0"
 displayName="Enchant Mod"
 description='''
-Adds Blast Shot and Blood Leech enchantments.
+Adds custom enchantments: Blast Shot, Vampirism, Blade Fury, Infernum.
 '''
 
 [[dependencies.enchantmod]]
