@@ -20,6 +20,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.BowItem;
+import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,37 +48,30 @@ public class EnchantMod {
         LOGGER.info("[EnchantMod] Loaded!");
     }
 
-    // Anvil check
+    private boolean isBow(ItemStack stack) {
+        return stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem;
+    }
+
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
         ItemStack right = event.getRight();
         if (!right.is(Items.ENCHANTED_BOOK)) return;
-
         Map<Enchantment, Integer> bookEnchants = EnchantmentHelper.getEnchantments(right);
         for (Enchantment ench : bookEnchants.keySet()) {
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
-                if (!left.is(ItemTags.BOWS)) {
-                    event.setCanceled(true);
-                    return;
-                }
+                if (!isBow(left)) { event.setCanceled(true); return; }
             }
             if (ench == ModEnchantments.BLOOD_LEECH.get()) {
-                // Используем тег swords - работает с мечами из любых модов
-                if (!left.is(ItemTags.SWORDS)) {
-                    event.setCanceled(true);
-                    return;
-                }
+                if (!left.is(ItemTags.SWORDS)) { event.setCanceled(true); return; }
             }
         }
     }
 
-    // Blood Leech - тег swords для совместимости с модами
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
-        // Тег minecraft:swords включает мечи из всех модов
         if (!weapon.is(ItemTags.SWORDS)) return;
         int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLOOD_LEECH.get(), weapon);
         if (level <= 0) return;
@@ -88,7 +83,6 @@ public class EnchantMod {
         }
     }
 
-    // Blast Shot
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -99,14 +93,14 @@ public class EnchantMod {
         UUID arrowId = arrow.getUUID();
         if (explodedArrows.contains(arrowId)) return;
 
-        ItemStack mainHand = player.getMainHandItem();
         int level = 0;
-        if (mainHand.is(ItemTags.BOWS)) {
+        ItemStack mainHand = player.getMainHandItem();
+        if (isBow(mainHand)) {
             level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), mainHand);
         }
         if (level <= 0) {
             ItemStack offHand = player.getOffhandItem();
-            if (offHand.is(ItemTags.BOWS)) {
+            if (isBow(offHand)) {
                 level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), offHand);
             }
         }
