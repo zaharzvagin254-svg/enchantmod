@@ -25,17 +25,26 @@ public class BlastShotEnchantment extends Enchantment {
 
     @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack) {
-        return stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem;
+        // Не появляется в столе зачарований
+        return false;
     }
 
     @Override
-    public int getMaxLevel() { return 3; }
+    public int getMaxLevel() { return 2; }
 
+    // Высокая цена — делает объединение дорогим
     @Override
-    public int getMinCost(int level) { return 20 + (level - 1) * 10; }
+    public int getMinCost(int level) { return 40 + (level - 1) * 30; }
 
     @Override
     public int getMaxCost(int level) { return getMinCost(level) + 50; }
+
+    // Очень редко у жителей
+    @Override
+    public boolean isTradeable() { return true; }
+
+    @Override
+    public boolean isDiscoverable() { return true; }
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
@@ -44,10 +53,4 @@ public class BlastShotEnchantment extends Enchantment {
         if (other == Enchantments.PIERCING) return false;
         return super.checkCompatibility(other);
     }
-
-    @Override
-    public boolean isTradeable() { return true; }
-
-    @Override
-    public boolean isDiscoverable() { return true; }
 }
