@@ -140,7 +140,7 @@ public class EnchantMod {
 
         // Level 1: +0.5 (базовая скорость 4.0, станет ~6.0 = 1.5x)
         // Level 2: +4.0 (станет ~8.0 = 2x)
-        double[] speedBonus = {0.0, 2.0, 4.0};
+        double[] speedBonus = {0.0, 0.8, 1.6};
         double bonus = level < speedBonus.length ? speedBonus[level] : 4.0;
 
         attackSpeed.addTransientModifier(new AttributeModifier(
