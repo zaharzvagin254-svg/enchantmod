@@ -1,8 +1,8 @@
 package com.enchantmod;
 
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -78,6 +78,10 @@ public class EnchantMod {
             || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, stack) > 0;
     }
 
+    private boolean hasInfernum(ItemStack stack) {
+        return EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), stack) > 0;
+    }
+
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
@@ -128,42 +132,23 @@ public class EnchantMod {
             }
         }
 
-        // Infernum - sword: only works if fire aspect is present, replaces it
-        if (isSword(weapon)) {
-            int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), weapon);
-            if (infLevel > 0 && hasFireEnchant(weapon)) {
-                LivingEntity target = event.getEntity();
-                // Cancel vanilla fire damage - we replace it with blue hellfire
-                target.clearFire();
-                target.addEffect(new MobEffectInstance(
-                    ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
-                ));
-            }
+        // Infernum - меч: нужно Воспламенение, заменяем обычный огонь синим
+        if (isSword(weapon) && hasInfernum(weapon) && hasFireEnchant(weapon)) {
+            LivingEntity target = event.getEntity();
+            // Применяем синий огонь
+            target.addEffect(new MobEffectInstance(
+                ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
+            ));
+            // Держим ванильный огонь чтобы RenderLayer видел isOnFire()
+            // но отменяем его через эффект который наносит наш урон
         }
-    }
 
-    // Spawn soul fire particles around burning entity every tick
-    @SubscribeEvent
-    public void onLivingTick(LivingEvent.LivingTickEvent event) {
-        LivingEntity entity = event.getEntity();
-        if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
-        if (!(entity.level() instanceof ServerLevel serverLevel)) return;
-
-        // Spawn SOUL_FIRE_FLAME particles around the entity
-        if (entity.level().getGameTime() % 2 == 0) {
-            double w = entity.getBbWidth() * 0.6;
-            double h = entity.getBbHeight();
-            for (int i = 0; i < 8; i++) {
-                double ox = (RANDOM.nextDouble() - 0.5) * w * 2;
-                double oy = RANDOM.nextDouble() * h;
-                double oz = (RANDOM.nextDouble() - 0.5) * w * 2;
-                serverLevel.sendParticles(
-                    ParticleTypes.SOUL_FIRE_FLAME,
-                    entity.getX() + ox,
-                    entity.getY() + oy,
-                    entity.getZ() + oz,
-                    1, 0, 0.05, 0, 0.02
-                );
+        // Блокируем ванильный урон от огня если есть Инфернум
+        // (наш BlueHellfireEffect сам наносит урон x2)
+        if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
+            LivingEntity target = event.getEntity();
+            if (target.hasEffect(ModEffects.BLUE_HELLFIRE.get())) {
+                event.setCanceled(true);
             }
         }
     }
@@ -179,17 +164,13 @@ public class EnchantMod {
         ItemStack offHand = player.getOffhandItem();
         ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
 
-        // Infernum - bow: only works if flame enchant is present, replaces it
-        if (bow != null) {
-            int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), bow);
-            if (infLevel > 0 && hasFireEnchant(bow)) {
-                if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
-                    if (entityHit.getEntity() instanceof LivingEntity target) {
-                        target.clearFire();
-                        target.addEffect(new MobEffectInstance(
-                            ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
-                        ));
-                    }
+        // Infernum - лук: нужен Заговор огня
+        if (bow != null && hasInfernum(bow) && hasFireEnchant(bow)) {
+            if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
+                if (entityHit.getEntity() instanceof LivingEntity target) {
+                    target.addEffect(new MobEffectInstance(
+                        ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
+                    ));
                 }
             }
         }
