@@ -1,6 +1,6 @@
 {
   "enchantment.enchantmod.blast_shot": "Взрывной выстрел",
-  "enchantment.enchantmod.blood_leech": "Кровавое поглощение",
   "enchantment.enchantmod.blast_shot.desc": "Стрелы имеют шанс взорваться при попадании, нанося урон и отбрасывая ближайших мобов. Не разрушает блоки.",
-  "enchantment.enchantmod.blood_leech.desc": "При ударе есть шанс восстановить 50% от нанесённого урона в виде здоровья."
+  "enchantment.enchantmod.vampirism": "Вампиризм",
+  "enchantment.enchantmod.vampirism.desc": "При ударе есть шанс восстановить 50% от нанесённого урона в виде здоровья."
 }
