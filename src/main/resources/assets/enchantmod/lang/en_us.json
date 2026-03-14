@@ -1,6 +1,6 @@
 {
   "enchantment.enchantmod.blast_shot": "Blast Shot",
-  "enchantment.enchantmod.blast_shot.desc": "Arrows have a chance to explode on impact, dealing damage and knocking back nearby mobs. Does not destroy blocks.",
   "enchantment.enchantmod.blood_leech": "Blood Leech",
-  "enchantment.enchantmod.blood_leech.desc": "Has a chance to restore 50% of damage dealt as health when striking with a sword."
+  "enchantment.enchantmod.blast_shot.desc": "Arrows have a chance to explode on impact, dealing damage and knocking back nearby mobs. Does not destroy blocks.",
+  "enchantment.enchantmod.blood_leech.desc": "Chance to restore 50% of damage dealt as health when striking."
 }
