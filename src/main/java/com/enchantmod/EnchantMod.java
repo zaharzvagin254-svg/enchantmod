@@ -1,5 +1,6 @@
 package com.enchantmod;
 
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -19,7 +20,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.server.level.ServerLevel;
@@ -48,7 +48,7 @@ public class EnchantMod {
         LOGGER.info("[EnchantMod] Loaded!");
     }
 
-    // Anvil check - block wrong enchantment combinations
+    // Anvil check
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
@@ -64,7 +64,8 @@ public class EnchantMod {
                 }
             }
             if (ench == ModEnchantments.BLOOD_LEECH.get()) {
-                if (!(left.getItem() instanceof SwordItem)) {
+                // Используем тег swords - работает с мечами из любых модов
+                if (!left.is(ItemTags.SWORDS)) {
                     event.setCanceled(true);
                     return;
                 }
@@ -72,12 +73,13 @@ public class EnchantMod {
         }
     }
 
-    // Blood Leech
+    // Blood Leech - тег swords для совместимости с модами
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
-        if (!(weapon.getItem() instanceof SwordItem)) return;
+        // Тег minecraft:swords включает мечи из всех модов
+        if (!weapon.is(ItemTags.SWORDS)) return;
         int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLOOD_LEECH.get(), weapon);
         if (level <= 0) return;
         float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
