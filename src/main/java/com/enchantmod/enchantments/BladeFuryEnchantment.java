@@ -31,23 +31,20 @@ public class BladeFuryEnchantment extends Enchantment {
     public boolean canApplyAtEnchantingTable(ItemStack stack) { return false; }
 
     @Override
-    public int getMaxLevel() { return 2; }
-
-    // Дорогое объединение
-    @Override
-    public int getMinCost(int level) { return 45 + (level - 1) * 35; }
+    public int getMaxLevel() { return 1; }
 
     @Override
-    public int getMaxCost(int level) { return getMinCost(level) + 50; }
+    public int getMinCost(int level) { return 45; }
 
-    // Дорого у жителей — как взрывной выстрел
+    @Override
+    public int getMaxCost(int level) { return 95; }
+
     @Override
     public boolean isTradeable() { return true; }
 
     @Override
     public boolean isDiscoverable() { return true; }
 
-    // Совместимо со всеми
     @Override
     public boolean checkCompatibility(Enchantment other) {
         return super.checkCompatibility(other);
