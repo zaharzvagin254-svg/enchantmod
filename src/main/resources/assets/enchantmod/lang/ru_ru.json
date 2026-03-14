@@ -4,5 +4,7 @@
   "enchantment.enchantmod.vampirism": "Вампиризм",
   "enchantment.enchantmod.vampirism.desc": "При ударе есть шанс восстановить 50% от нанесённого урона в виде здоровья.",
   "enchantment.enchantmod.blade_fury": "Ярость клинка",
-  "enchantment.enchantmod.blade_fury.desc": "Ускоряет перезарядку."
+  "enchantment.enchantmod.blade_fury.desc": "Ускоряет перезарядку меча в 1.3 раза.",
+  "enchantment.enchantmod.infernum": "Инфернум",
+  "enchantment.enchantmod.infernum.desc": "Усиливает огонь от Воспламенения и Заговора огня. Враги горят синим адским пламенем, наносящим вдвое больше урона."
 }
