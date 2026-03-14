@@ -23,9 +23,9 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
 
     // Custom blue fire textures from our mod
     private static final ResourceLocation FIRE_0 =
-        new ResourceLocation("enchantmod", "textures/entity/blue_fire_0.png");
+        new ResourceLocation("enchantmod", "textures/block/blue_fire_0.png");
     private static final ResourceLocation FIRE_1 =
-        new ResourceLocation("enchantmod", "textures/entity/blue_fire_1.png");
+        new ResourceLocation("enchantmod", "textures/block/blue_fire_1.png");
 
     public BlueFireRenderLayer(LivingEntityRenderer<T, M> renderer) {
         super(renderer);
