@@ -10,6 +10,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AnvilUpdateEvent;
@@ -55,7 +56,6 @@ public class EnchantMod {
         return stack.getItem() instanceof BowItem || stack.getItem() instanceof CrossbowItem;
     }
 
-    // Только SwordItem и тег swords - без атрибутов
     private boolean isSword(ItemStack stack) {
         if (stack.isEmpty()) return false;
         if (stack.getItem() instanceof SwordItem) return true;
@@ -73,18 +73,19 @@ public class EnchantMod {
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
                 if (!isBow(left)) { event.setCanceled(true); return; }
             }
-            if (ench == ModEnchantments.BLOOD_LEECH.get()) {
+            if (ench == ModEnchantments.VAMPIRISM.get()) {
                 if (!isSword(left)) { event.setCanceled(true); return; }
             }
         }
     }
 
+    // Vampirism
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
         if (!isSword(weapon)) return;
-        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLOOD_LEECH.get(), weapon);
+        int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.VAMPIRISM.get(), weapon);
         if (level <= 0) return;
         float[] chances = {0.0f, 0.10f, 0.15f, 0.20f};
         float chance = level < chances.length ? chances[level] : 0.20f;
@@ -103,6 +104,7 @@ public class EnchantMod {
         }
     }
 
+    // Blast Shot - I=30%/5dmg, II=40%/7dmg
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -126,30 +128,53 @@ public class EnchantMod {
         }
         if (level <= 0) return;
 
-        float[] chances = {0.0f, 0.20f, 0.35f, 0.50f};
-        float chance = level < chances.length ? chances[level] : 0.50f;
+        float[] chances = {0.0f, 0.30f, 0.40f};
+        float chance = level < chances.length ? chances[level] : 0.40f;
         if (RANDOM.nextFloat() >= chance) return;
 
         explodedArrows.add(arrowId);
         if (explodedArrows.size() > 100) explodedArrows.clear();
 
         Vec3 pos = arrow.position();
-        serverLevel.explode(null, pos.x, pos.y, pos.z, 1.2f, Level.ExplosionInteraction.NONE);
 
-        DamageSource blastDamage = serverLevel.damageSources().explosion(arrow, player);
+        float[] damages = {0.0f, 5.0f, 7.0f};
+        float dmg = level < damages.length ? damages[level] : 7.0f;
+
+        // Определяем в кого попала стрела чтобы не отменять его урон
+        LivingEntity hitTarget = null;
+        if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
+            if (entityHit.getEntity() instanceof LivingEntity le) {
+                hitTarget = le;
+            }
+        }
+        final LivingEntity finalHitTarget = hitTarget;
+
+        // Сначала наносим урон окружающим - используем magic урон (не explosion)
+        // чтобы не конфликтовать с уроном стрелы
+        DamageSource blastDamage = serverLevel.damageSources().magic();
         List<LivingEntity> nearby = serverLevel.getEntitiesOfClass(
             LivingEntity.class,
             new AABB(pos.x - 2.5, pos.y - 2.5, pos.z - 2.5, pos.x + 2.5, pos.y + 2.5, pos.z + 2.5)
         );
         for (LivingEntity mob : nearby) {
             if (mob == player) continue;
+            // Не наносим доп урон мобу в которого попала стрела - он уже получит урон от стрелы
+            if (mob == finalHitTarget) {
+                // Только отталкиваем
+                Vec3 dir = mob.position().subtract(pos).normalize();
+                mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
+                mob.hurtMarked = true;
+                continue;
+            }
             double dist = mob.position().distanceTo(pos);
             if (dist > 2.5) continue;
-            // Фиксированный урон 6, не зависит от расстояния
-            mob.hurt(blastDamage, 6.0f);
+            mob.hurt(blastDamage, dmg);
             Vec3 dir = mob.position().subtract(pos).normalize();
             mob.setDeltaMovement(mob.getDeltaMovement().add(dir.x * 1.2, 0.4, dir.z * 1.2));
             mob.hurtMarked = true;
         }
+
+        // Взрыв только визуальный - после урона
+        serverLevel.explode(null, pos.x, pos.y, pos.z, 1.2f, Level.ExplosionInteraction.NONE);
     }
 }
