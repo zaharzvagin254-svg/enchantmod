@@ -25,21 +25,18 @@ public class BlastShotEnchantment extends Enchantment {
 
     @Override
     public boolean canApplyAtEnchantingTable(ItemStack stack) {
-        // Не появляется в столе зачарований
         return false;
     }
 
     @Override
     public int getMaxLevel() { return 2; }
 
-    // Высокая цена — делает объединение дорогим
     @Override
     public int getMinCost(int level) { return 40 + (level - 1) * 30; }
 
     @Override
     public int getMaxCost(int level) { return getMinCost(level) + 50; }
 
-    // Очень редко у жителей
     @Override
     public boolean isTradeable() { return true; }
 
@@ -48,9 +45,11 @@ public class BlastShotEnchantment extends Enchantment {
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
+        // Нельзя комбинировать с Infinity, Multishot, Piercing, Fire Aspect, Multishot
         if (other == Enchantments.INFINITY_ARROWS) return false;
         if (other == Enchantments.MULTISHOT) return false;
         if (other == Enchantments.PIERCING) return false;
+        if (other == Enchantments.FLAMING_ARROWS) return false; // Воспламенение
         return super.checkCompatibility(other);
     }
 }
