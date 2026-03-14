@@ -49,7 +49,6 @@ public class InfernumEnchantment extends Enchantment {
     @Override
     public boolean isDiscoverable() { return true; }
 
-    // Совместим со всем включая воспламенение и заговор огня
     @Override
     public boolean checkCompatibility(Enchantment other) {
         return super.checkCompatibility(other);
