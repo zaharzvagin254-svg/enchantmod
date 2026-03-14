@@ -24,26 +24,22 @@ public class ClientSetup {
             .map(c -> c.getString())
             .reduce("", String::concat);
 
-        if (enchants.containsKey(ModEnchantments.BLAST_SHOT.get())) {
-            String desc = Component.translatable("enchantment.enchantmod.blast_shot.desc").getString();
-            if (!tooltipText.contains(desc)) {
-                event.getToolTip().add(Component.translatable("enchantment.enchantmod.blast_shot.desc")
-                    .withStyle(ChatFormatting.GRAY));
-            }
-        }
-        if (enchants.containsKey(ModEnchantments.VAMPIRISM.get())) {
-            String desc = Component.translatable("enchantment.enchantmod.vampirism.desc").getString();
-            if (!tooltipText.contains(desc)) {
-                event.getToolTip().add(Component.translatable("enchantment.enchantmod.vampirism.desc")
-                    .withStyle(ChatFormatting.GRAY));
-            }
-        }
-        if (enchants.containsKey(ModEnchantments.BLADE_FURY.get())) {
-            String desc = Component.translatable("enchantment.enchantmod.blade_fury.desc").getString();
-            if (!tooltipText.contains(desc)) {
-                event.getToolTip().add(Component.translatable("enchantment.enchantmod.blade_fury.desc")
-                    .withStyle(ChatFormatting.GRAY));
-            }
+        addDesc(event, enchants, ModEnchantments.BLAST_SHOT.get(),
+            "enchantment.enchantmod.blast_shot.desc", tooltipText);
+        addDesc(event, enchants, ModEnchantments.VAMPIRISM.get(),
+            "enchantment.enchantmod.vampirism.desc", tooltipText);
+        addDesc(event, enchants, ModEnchantments.BLADE_FURY.get(),
+            "enchantment.enchantmod.blade_fury.desc", tooltipText);
+        addDesc(event, enchants, ModEnchantments.INFERNUM.get(),
+            "enchantment.enchantmod.infernum.desc", tooltipText);
+    }
+
+    private static void addDesc(ItemTooltipEvent event, Map<Enchantment, Integer> enchants,
+                                  Enchantment ench, String key, String existing) {
+        if (!enchants.containsKey(ench)) return;
+        String desc = Component.translatable(key).getString();
+        if (!existing.contains(desc)) {
+            event.getToolTip().add(Component.translatable(key).withStyle(ChatFormatting.GRAY));
         }
     }
 }
