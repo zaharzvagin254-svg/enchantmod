@@ -7,8 +7,8 @@ import com.mojang.math.Axis;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
@@ -21,7 +21,6 @@ import org.joml.Matrix4f;
 public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T>>
         extends RenderLayer<T, M> {
 
-    // Используем текстуры soul fire из ванилы
     private static final ResourceLocation FIRE_0 =
         new ResourceLocation("minecraft", "textures/block/soul_fire_0.png");
     private static final ResourceLocation FIRE_1 =
@@ -36,7 +35,6 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                        T entity, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 
-        // Проверяем есть ли эффект синего огня
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
         ResourceLocation[] textures = new ResourceLocation[]{FIRE_0, FIRE_1};
@@ -51,8 +49,6 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
 
         for (int i = 0; i < 2; i++) {
             poseStack.pushPose();
-
-            // Два слоя огня крест-накрест
             if (i == 1) {
                 poseStack.mulPose(Axis.YP.rotationDegrees(90f));
             }
@@ -66,9 +62,7 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
             Matrix4f mat = pose.pose();
             Matrix3f norm = pose.normal();
 
-            // Нижняя часть огня
             addQuad(consumer, mat, norm, -0.5f, 0.0f, 0.5f, 0.0f, 1.0f, packedLight);
-            // Верхняя часть огня
             addQuad(consumer, mat, norm, -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, packedLight);
 
             poseStack.popPose();
@@ -80,17 +74,16 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
     private void addQuad(VertexConsumer consumer, Matrix4f mat, Matrix3f norm,
                           float x1, float y1, float x2, float y2, float v,
                           int packedLight) {
-        float u1 = 0.0f, u2 = 1.0f;
-        consumer.vertex(mat, x1, y1, 0).color(1f,1f,1f,1f).uv(u2, v)
+        consumer.vertex(mat, x1, y1, 0).color(1f,1f,1f,1f).uv(1.0f, v)
             .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
             .normal(norm, 0,1,0).endVertex();
-        consumer.vertex(mat, x2, y1, 0).color(1f,1f,1f,1f).uv(u1, v)
+        consumer.vertex(mat, x2, y1, 0).color(1f,1f,1f,1f).uv(0.0f, v)
             .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
             .normal(norm, 0,1,0).endVertex();
-        consumer.vertex(mat, x2, y2, 0).color(1f,1f,1f,1f).uv(u1, 1f-v)
+        consumer.vertex(mat, x2, y2, 0).color(1f,1f,1f,1f).uv(0.0f, 1f-v)
             .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
             .normal(norm, 0,1,0).endVertex();
-        consumer.vertex(mat, x1, y2, 0).color(1f,1f,1f,1f).uv(u2, 1f-v)
+        consumer.vertex(mat, x1, y2, 0).color(1f,1f,1f,1f).uv(1.0f, 1f-v)
             .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
             .normal(norm, 0,1,0).endVertex();
     }
