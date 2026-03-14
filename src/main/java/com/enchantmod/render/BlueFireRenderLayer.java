@@ -35,64 +35,56 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                        T entity, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 
+        // Показываем синий огонь только когда есть наш эффект
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
         poseStack.pushPose();
 
-        float scaleX = entity.getBbWidth() * 1.4f;
-        float scaleY = entity.getBbHeight() + 0.5f;
+        float w = entity.getBbWidth() * 1.4f;
+        float h = entity.getBbHeight() + 0.5f;
 
-        poseStack.scale(scaleX, scaleY, scaleX);
+        poseStack.scale(w, h, w);
 
-        // Точно как ванильный FireLayer рендерит огонь
-        float f = 0.5f;
-        float f1 = entity.getBbHeight() / scaleY;
-
-        renderFire(poseStack, bufferSource, FIRE_0, f, f1, packedLight, 0.0f);
-        renderFire(poseStack, bufferSource, FIRE_1, f, f1, packedLight, 90.0f);
+        // Два слоя крест-накрест как ванильный огонь
+        renderSlice(poseStack, bufferSource, FIRE_0, 0f, packedLight);
+        renderSlice(poseStack, bufferSource, FIRE_1, 90f, packedLight);
 
         poseStack.popPose();
     }
 
-    private void renderFire(PoseStack poseStack, MultiBufferSource bufferSource,
-                             ResourceLocation texture, float f, float f1,
-                             int packedLight, float rotation) {
+    private void renderSlice(PoseStack poseStack, MultiBufferSource bufferSource,
+                               ResourceLocation texture, float yRot, int packedLight) {
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
-
-        float x0 = -f;
-        float x1 = f;
-        float y0 = 0.0f;
-        float y1 = 1.0f;
-        float z = 0.001f - (rotation > 0 ? 0.001f : 0.0f);
+        poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
+        poseStack.translate(0, 0, -0.3 + (yRot > 0 ? 0.001 : 0));
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat = pose.pose();
         Matrix3f norm = pose.normal();
 
-        // Bottom quad
-        addVertex(consumer, mat, norm, x0, y0, z, 0, f1, packedLight);
-        addVertex(consumer, mat, norm, x1, y0, z, 1, f1, packedLight);
-        addVertex(consumer, mat, norm, x1, y1, z, 1, 0, packedLight);
-        addVertex(consumer, mat, norm, x0, y1, z, 0, 0, packedLight);
+        // Нижняя половина (0.0 - 0.5)
+        vertex(consumer, mat, norm, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, packedLight);
+        vertex(consumer, mat, norm,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, packedLight);
+        vertex(consumer, mat, norm,  0.5f, 0.5f, 0.0f, 1.0f, 0.5f, packedLight);
+        vertex(consumer, mat, norm, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, packedLight);
 
-        // Back face
-        addVertex(consumer, mat, norm, x1, y0, z, 0, f1, packedLight);
-        addVertex(consumer, mat, norm, x0, y0, z, 1, f1, packedLight);
-        addVertex(consumer, mat, norm, x0, y1, z, 1, 0, packedLight);
-        addVertex(consumer, mat, norm, x1, y1, z, 0, 0, packedLight);
+        // Верхняя половина (0.5 - 1.0)
+        vertex(consumer, mat, norm, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, packedLight);
+        vertex(consumer, mat, norm,  0.5f, 0.5f, 0.0f, 1.0f, 0.5f, packedLight);
+        vertex(consumer, mat, norm,  0.5f, 1.0f, 0.0f, 1.0f, 0.0f, packedLight);
+        vertex(consumer, mat, norm, -0.5f, 1.0f, 0.0f, 0.0f, 0.0f, packedLight);
 
         poseStack.popPose();
     }
 
-    private void addVertex(VertexConsumer consumer, Matrix4f mat, Matrix3f norm,
-                            float x, float y, float z, float u, float v, int packedLight) {
-        consumer.vertex(mat, x - 0.5f, y, z)
+    private void vertex(VertexConsumer c, Matrix4f mat, Matrix3f norm,
+                         float x, float y, float z, float u, float v, int light) {
+        c.vertex(mat, x, y, z)
             .color(1f, 1f, 1f, 1f)
             .uv(u, v)
             .overlayCoords(OverlayTexture.NO_OVERLAY)
-            .uv2(packedLight)
+            .uv2(light)
             .normal(norm, 0, 1, 0)
             .endVertex();
     }
