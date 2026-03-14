@@ -35,7 +35,7 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                        T entity, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 
-        // Показываем синий огонь только когда есть наш эффект
+        
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
         poseStack.pushPose();
@@ -45,7 +45,7 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
 
         poseStack.scale(w, h, w);
 
-        // Два слоя крест-накрест как ванильный огонь
+        
         renderSlice(poseStack, bufferSource, FIRE_0, 0f, packedLight);
         renderSlice(poseStack, bufferSource, FIRE_1, 90f, packedLight);
 
@@ -63,13 +63,13 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
         Matrix4f mat = pose.pose();
         Matrix3f norm = pose.normal();
 
-        // Нижняя половина (0.0 - 0.5)
+        
         vertex(consumer, mat, norm, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 0.5f, 0.0f, 1.0f, 0.5f, packedLight);
         vertex(consumer, mat, norm, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, packedLight);
 
-        // Верхняя половина (0.5 - 1.0)
+        
         vertex(consumer, mat, norm, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 0.5f, 0.0f, 1.0f, 0.5f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 1.0f, 0.0f, 1.0f, 0.0f, packedLight);
