@@ -2,8 +2,10 @@ package com.enchantmod;
 
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -54,6 +56,7 @@ public class EnchantMod {
     public EnchantMod() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModEnchantments.ENCHANTMENTS.register(modBus);
+        ModEffects.MOB_EFFECTS.register(modBus);
         MinecraftForge.EVENT_BUS.register(this);
         LOGGER.info("[EnchantMod] Loaded!");
     }
@@ -95,13 +98,11 @@ public class EnchantMod {
                 if (!isSword(left)) { event.setCanceled(true); return; }
             }
             if (ench == ModEnchantments.INFERNUM.get()) {
-                boolean valid = isSword(left) || isBow(left);
-                if (!valid) { event.setCanceled(true); return; }
+                if (!isSword(left) && !isBow(left)) { event.setCanceled(true); return; }
             }
         }
     }
 
-    // Vampirism
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
@@ -126,22 +127,25 @@ public class EnchantMod {
             }
         }
 
-        // Infernum - меч: заменяем обычный огонь на синий адский (x2 урон)
+        // Infernum - меч: применяем синий огонь
         if (isSword(weapon)) {
             int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), weapon);
             if (infLevel > 0 && hasFireEnchant(weapon)) {
-                if (event.getEntity().isOnFire() && event.getSource().is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
-                    // Наносим дополнительный урон огнем (x2 - базовый уже посчитан)
-                    event.getEntity().hurt(
-                        event.getEntity().level().damageSources().inFire(),
-                        event.getAmount()
-                    );
-                }
+                LivingEntity target = event.getEntity();
+                // Применяем эффект синего огня на 5 секунд (100 тиков)
+                target.addEffect(new MobEffectInstance(
+                    ModEffects.BLUE_HELLFIRE.get(),
+                    100, // 5 секунд
+                    0,
+                    false,
+                    false // не показывать частицы эффекта
+                ));
+                // Убираем обычный огонь
+                target.clearFire();
             }
         }
     }
 
-    // Infernum - стрела: поджигаем с двойным уроном огня
     @SubscribeEvent
     public void onProjectileImpact(ProjectileImpactEvent event) {
         if (!(event.getProjectile() instanceof AbstractArrow arrow)) return;
@@ -149,22 +153,21 @@ public class EnchantMod {
         if (arrow.level().isClientSide()) return;
         if (!(arrow.level() instanceof ServerLevel serverLevel)) return;
 
-        // Infernum для лука
-        ItemStack bow = null;
+        // Infernum - лук
         ItemStack mainHand = player.getMainHandItem();
         ItemStack offHand = player.getOffhandItem();
-        if (isBow(mainHand)) bow = mainHand;
-        else if (isBow(offHand)) bow = offHand;
+        ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
 
         if (bow != null) {
             int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), bow);
             if (infLevel > 0 && hasFireEnchant(bow)) {
                 if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
                     if (entityHit.getEntity() instanceof LivingEntity target) {
-                        // Поджигаем на 8 секунд (x2 от обычного Flame = 5 сек)
-                        target.setSecondsOnFire(8);
-                        // Доп урон огнем сразу
-                        target.hurt(serverLevel.damageSources().inFire(), 2.0f);
+                        target.addEffect(new MobEffectInstance(
+                            ModEffects.BLUE_HELLFIRE.get(),
+                            100, 0, false, false
+                        ));
+                        target.clearFire();
                     }
                 }
             }
@@ -175,7 +178,7 @@ public class EnchantMod {
         if (explodedArrows.contains(arrowId)) return;
 
         int level = 0;
-        if (bow != null && isBow(bow)) {
+        if (bow != null) {
             level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), bow);
         }
         if (level <= 0) return;
@@ -220,7 +223,6 @@ public class EnchantMod {
         serverLevel.explode(null, pos.x, pos.y, pos.z, 1.2f, Level.ExplosionInteraction.NONE);
     }
 
-    // Blade Fury - 1 уровень, 1.3x скорость атаки
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.START) return;
@@ -229,19 +231,14 @@ public class EnchantMod {
 
         AttributeInstance attackSpeed = player.getAttribute(Attributes.ATTACK_SPEED);
         if (attackSpeed == null) return;
-
         attackSpeed.removeModifier(BLADE_FURY_UUID);
 
         if (!isSword(weapon)) return;
         int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLADE_FURY.get(), weapon);
         if (level <= 0) return;
 
-        // Базовая скорость 4.0, +1.2 = 5.2 (примерно 1.3x)
         attackSpeed.addTransientModifier(new AttributeModifier(
-            BLADE_FURY_UUID,
-            "blade_fury_speed",
-            1.2,
-            AttributeModifier.Operation.ADDITION
+            BLADE_FURY_UUID, "blade_fury_speed", 1.2, AttributeModifier.Operation.ADDITION
         ));
     }
 }
