@@ -127,20 +127,20 @@ public class EnchantMod {
             }
         }
 
-        // Infernum - меч: применяем синий огонь
+        // Infernum - sword: apply blue fire
         if (isSword(weapon)) {
             int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), weapon);
             if (infLevel > 0 && hasFireEnchant(weapon)) {
                 LivingEntity target = event.getEntity();
-                // Применяем эффект синего огня на 5 секунд (100 тиков)
+                // Apply blue fire effect for 5 seconds
                 target.addEffect(new MobEffectInstance(
                     ModEffects.BLUE_HELLFIRE.get(),
-                    100, // 5 секунд
+                    100,
                     0,
                     false,
-                    false // не показывать частицы эффекта
+                    false
                 ));
-                // Убираем обычный огонь
+                // Remove normal fire
                 target.clearFire();
             }
         }
@@ -153,7 +153,7 @@ public class EnchantMod {
         if (arrow.level().isClientSide()) return;
         if (!(arrow.level() instanceof ServerLevel serverLevel)) return;
 
-        // Infernum - лук
+        // Infernum - bow
         ItemStack mainHand = player.getMainHandItem();
         ItemStack offHand = player.getOffhandItem();
         ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
