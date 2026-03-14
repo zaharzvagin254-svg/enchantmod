@@ -20,8 +20,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.BowItem;
-import net.minecraft.world.item.CrossbowItem;
 import net.minecraft.server.level.ServerLevel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,7 +56,7 @@ public class EnchantMod {
         Map<Enchantment, Integer> bookEnchants = EnchantmentHelper.getEnchantments(right);
         for (Enchantment ench : bookEnchants.keySet()) {
             if (ench == ModEnchantments.BLAST_SHOT.get()) {
-                if (!(left.getItem() instanceof BowItem) && !(left.getItem() instanceof CrossbowItem)) {
+                if (!left.is(ItemTags.BOWS)) {
                     event.setCanceled(true);
                     return;
                 }
@@ -103,12 +101,12 @@ public class EnchantMod {
 
         ItemStack mainHand = player.getMainHandItem();
         int level = 0;
-        if (mainHand.is(Items.BOW) || mainHand.is(Items.CROSSBOW)) {
+        if (mainHand.is(ItemTags.BOWS)) {
             level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), mainHand);
         }
         if (level <= 0) {
             ItemStack offHand = player.getOffhandItem();
-            if (offHand.is(Items.BOW) || offHand.is(Items.CROSSBOW)) {
+            if (offHand.is(ItemTags.BOWS)) {
                 level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.BLAST_SHOT.get(), offHand);
             }
         }
