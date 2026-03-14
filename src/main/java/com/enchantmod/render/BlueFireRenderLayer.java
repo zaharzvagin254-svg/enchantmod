@@ -21,10 +21,11 @@ import org.joml.Matrix4f;
 public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T>>
         extends RenderLayer<T, M> {
 
+    // Custom blue fire textures from our mod
     private static final ResourceLocation FIRE_0 =
-        new ResourceLocation("minecraft", "textures/block/soul_fire_0.png");
+        new ResourceLocation("enchantmod", "textures/entity/blue_fire_0.png");
     private static final ResourceLocation FIRE_1 =
-        new ResourceLocation("minecraft", "textures/block/soul_fire_1.png");
+        new ResourceLocation("enchantmod", "textures/entity/blue_fire_1.png");
 
     public BlueFireRenderLayer(LivingEntityRenderer<T, M> renderer) {
         super(renderer);
