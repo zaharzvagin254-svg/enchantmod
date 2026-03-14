@@ -1,8 +1,8 @@
 package com.enchantmod;
 
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -20,6 +20,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AnvilUpdateEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.TickEvent;
@@ -127,21 +128,42 @@ public class EnchantMod {
             }
         }
 
-        // Infernum - sword: apply blue fire
+        // Infernum - sword: only works if fire aspect is present, replaces it
         if (isSword(weapon)) {
             int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), weapon);
             if (infLevel > 0 && hasFireEnchant(weapon)) {
                 LivingEntity target = event.getEntity();
-                // Apply blue fire effect for 5 seconds
-                target.addEffect(new MobEffectInstance(
-                    ModEffects.BLUE_HELLFIRE.get(),
-                    100,
-                    0,
-                    false,
-                    false
-                ));
-                // Remove normal fire
+                // Cancel vanilla fire damage - we replace it with blue hellfire
                 target.clearFire();
+                target.addEffect(new MobEffectInstance(
+                    ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
+                ));
+            }
+        }
+    }
+
+    // Spawn soul fire particles around burning entity every tick
+    @SubscribeEvent
+    public void onLivingTick(LivingEvent.LivingTickEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
+        if (!(entity.level() instanceof ServerLevel serverLevel)) return;
+
+        // Spawn SOUL_FIRE_FLAME particles around the entity
+        if (entity.level().getGameTime() % 2 == 0) {
+            double w = entity.getBbWidth() * 0.6;
+            double h = entity.getBbHeight();
+            for (int i = 0; i < 8; i++) {
+                double ox = (RANDOM.nextDouble() - 0.5) * w * 2;
+                double oy = RANDOM.nextDouble() * h;
+                double oz = (RANDOM.nextDouble() - 0.5) * w * 2;
+                serverLevel.sendParticles(
+                    ParticleTypes.SOUL_FIRE_FLAME,
+                    entity.getX() + ox,
+                    entity.getY() + oy,
+                    entity.getZ() + oz,
+                    1, 0, 0.05, 0, 0.02
+                );
             }
         }
     }
@@ -153,21 +175,20 @@ public class EnchantMod {
         if (arrow.level().isClientSide()) return;
         if (!(arrow.level() instanceof ServerLevel serverLevel)) return;
 
-        // Infernum - bow
         ItemStack mainHand = player.getMainHandItem();
         ItemStack offHand = player.getOffhandItem();
         ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
 
+        // Infernum - bow: only works if flame enchant is present, replaces it
         if (bow != null) {
             int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), bow);
             if (infLevel > 0 && hasFireEnchant(bow)) {
                 if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
                     if (entityHit.getEntity() instanceof LivingEntity target) {
-                        target.addEffect(new MobEffectInstance(
-                            ModEffects.BLUE_HELLFIRE.get(),
-                            100, 0, false, false
-                        ));
                         target.clearFire();
+                        target.addEffect(new MobEffectInstance(
+                            ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
+                        ));
                     }
                 }
             }
