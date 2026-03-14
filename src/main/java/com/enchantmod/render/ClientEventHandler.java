@@ -5,7 +5,6 @@ import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -16,7 +15,6 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public static void addLayers(EntityRenderersEvent.AddLayers event) {
-        // Добавляем слой для игрока
         for (String skin : event.getSkins()) {
             var renderer = event.getSkin(skin);
             if (renderer != null) {
@@ -24,7 +22,6 @@ public class ClientEventHandler {
             }
         }
 
-        // Добавляем слой для всех живых мобов
         addLayerForType(event, EntityType.ZOMBIE);
         addLayerForType(event, EntityType.SKELETON);
         addLayerForType(event, EntityType.CREEPER);
@@ -45,26 +42,21 @@ public class ClientEventHandler {
         addLayerForType(event, EntityType.PIGLIN);
         addLayerForType(event, EntityType.PIGLIN_BRUTE);
         addLayerForType(event, EntityType.ZOMBIFIED_PIGLIN);
-        addLayerForType(event, EntityType.HOGLIN);
-        addLayerForType(event, EntityType.ZOGLIN);
         addLayerForType(event, EntityType.GUARDIAN);
         addLayerForType(event, EntityType.ELDER_GUARDIAN);
         addLayerForType(event, EntityType.WITHER);
-        addLayerForType(event, EntityType.ENDER_DRAGON);
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends LivingEntity, M extends EntityModel<T>>
-    void addLayerForType(EntityRenderersEvent.AddLayers event, EntityType<T> type) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void addLayerForType(EntityRenderersEvent.AddLayers event, EntityType<?> type) {
         var renderer = event.getRenderer(type);
-        if (renderer instanceof LivingEntityRenderer<?, ?> livingRenderer) {
-            addLayer((LivingEntityRenderer<T, M>) livingRenderer);
+        if (renderer instanceof LivingEntityRenderer livingRenderer) {
+            addLayer(livingRenderer);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends LivingEntity, M extends EntityModel<T>>
-    void addLayer(LivingEntityRenderer<T, M> renderer) {
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static void addLayer(LivingEntityRenderer renderer) {
         renderer.addLayer(new BlueFireRenderLayer<>(renderer));
     }
 }
