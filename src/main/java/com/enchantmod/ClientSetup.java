@@ -31,11 +31,17 @@ public class ClientSetup {
                     .withStyle(ChatFormatting.GRAY));
             }
         }
-
         if (enchants.containsKey(ModEnchantments.VAMPIRISM.get())) {
             String desc = Component.translatable("enchantment.enchantmod.vampirism.desc").getString();
             if (!tooltipText.contains(desc)) {
                 event.getToolTip().add(Component.translatable("enchantment.enchantmod.vampirism.desc")
+                    .withStyle(ChatFormatting.GRAY));
+            }
+        }
+        if (enchants.containsKey(ModEnchantments.BLADE_FURY.get())) {
+            String desc = Component.translatable("enchantment.enchantmod.blade_fury.desc").getString();
+            if (!tooltipText.contains(desc)) {
+                event.getToolTip().add(Component.translatable("enchantment.enchantmod.blade_fury.desc")
                     .withStyle(ChatFormatting.GRAY));
             }
         }
