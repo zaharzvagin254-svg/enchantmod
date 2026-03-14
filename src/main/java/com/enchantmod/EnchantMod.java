@@ -130,7 +130,7 @@ public class EnchantMod {
         if (isSword(weapon)) {
             int infLevel = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), weapon);
             if (infLevel > 0 && hasFireEnchant(weapon)) {
-                if (event.getEntity().isOnFire() && event.getSource().isFire()) {
+                if (event.getEntity().isOnFire() && event.getSource().is(net.minecraft.tags.DamageTypeTags.IS_FIRE)) {
                     // Наносим дополнительный урон огнем (x2 - базовый уже посчитан)
                     event.getEntity().hurt(
                         event.getEntity().level().damageSources().inFire(),
