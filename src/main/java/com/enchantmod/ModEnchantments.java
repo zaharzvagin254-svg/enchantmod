@@ -15,6 +15,6 @@ public class ModEnchantments {
     public static final RegistryObject<Enchantment> BLAST_SHOT =
         ENCHANTMENTS.register("blast_shot", BlastShotEnchantment::new);
 
-    public static final RegistryObject<Enchantment> BLOOD_LEECH =
-        ENCHANTMENTS.register("blood_leech", BloodLeechEnchantment::new);
+    public static final RegistryObject<Enchantment> VAMPIRISM =
+        ENCHANTMENTS.register("vampirism", BloodLeechEnchantment::new);
 }
