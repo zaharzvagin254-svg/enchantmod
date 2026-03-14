@@ -4,5 +4,7 @@
   "enchantment.enchantmod.vampirism": "Vampirism",
   "enchantment.enchantmod.vampirism.desc": "Chance to restore 50% of damage dealt as health.",
   "enchantment.enchantmod.blade_fury": "Blade Fury",
-  "enchantment.enchantmod.blade_fury.desc": "Increases attack speed."
+  "enchantment.enchantmod.blade_fury.desc": "Increases sword attack speed by 1.3x.",
+  "enchantment.enchantmod.infernum": "Infernum",
+  "enchantment.enchantmod.infernum.desc": "Enhances Fire Aspect and Flame. Enemies burn with blue infernal fire dealing twice the damage."
 }
