@@ -2,6 +2,7 @@ package com.enchantmod;
 
 import com.enchantmod.enchantments.BlastShotEnchantment;
 import com.enchantmod.enchantments.BloodLeechEnchantment;
+import com.enchantmod.enchantments.BladeFuryEnchantment;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -17,4 +18,7 @@ public class ModEnchantments {
 
     public static final RegistryObject<Enchantment> VAMPIRISM =
         ENCHANTMENTS.register("vampirism", BloodLeechEnchantment::new);
+
+    public static final RegistryObject<Enchantment> BLADE_FURY =
+        ENCHANTMENTS.register("blade_fury", BladeFuryEnchantment::new);
 }
