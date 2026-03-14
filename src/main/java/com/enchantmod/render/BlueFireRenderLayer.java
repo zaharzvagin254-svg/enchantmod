@@ -21,7 +21,6 @@ import org.joml.Matrix4f;
 public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T>>
         extends RenderLayer<T, M> {
 
-    // Custom blue fire textures from our mod
     private static final ResourceLocation FIRE_0 =
         new ResourceLocation("enchantmod", "textures/block/blue_fire_0.png");
     private static final ResourceLocation FIRE_1 =
@@ -38,54 +37,63 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
 
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
-        ResourceLocation[] textures = new ResourceLocation[]{FIRE_0, FIRE_1};
-
         poseStack.pushPose();
 
-        float w = entity.getBbWidth() * 1.0f;
-        float h = entity.getBbHeight() + 0.5f;
+        float scaleX = entity.getBbWidth() * 1.4f;
+        float scaleY = entity.getBbHeight() + 0.5f;
 
-        poseStack.scale(w, h, w);
-        poseStack.translate(0.0, 0.0, -0.3);
+        poseStack.scale(scaleX, scaleY, scaleX);
 
-        for (int i = 0; i < 2; i++) {
-            poseStack.pushPose();
-            if (i == 1) {
-                poseStack.mulPose(Axis.YP.rotationDegrees(90f));
-            }
+        // Точно как ванильный FireLayer рендерит огонь
+        float f = 0.5f;
+        float f1 = entity.getBbHeight() / scaleY;
 
-            ResourceLocation texture = textures[i % 2];
-            VertexConsumer consumer = bufferSource.getBuffer(
-                RenderType.entityCutoutNoCull(texture)
-            );
-
-            PoseStack.Pose pose = poseStack.last();
-            Matrix4f mat = pose.pose();
-            Matrix3f norm = pose.normal();
-
-            addQuad(consumer, mat, norm, -0.5f, 0.0f, 0.5f, 0.0f, 1.0f, packedLight);
-            addQuad(consumer, mat, norm, -0.5f, 0.5f, 0.5f, 1.0f, 0.0f, packedLight);
-
-            poseStack.popPose();
-        }
+        renderFire(poseStack, bufferSource, FIRE_0, f, f1, packedLight, 0.0f);
+        renderFire(poseStack, bufferSource, FIRE_1, f, f1, packedLight, 90.0f);
 
         poseStack.popPose();
     }
 
-    private void addQuad(VertexConsumer consumer, Matrix4f mat, Matrix3f norm,
-                          float x1, float y1, float x2, float y2, float v,
-                          int packedLight) {
-        consumer.vertex(mat, x1, y1, 0).color(1f,1f,1f,1f).uv(1.0f, v)
-            .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
-            .normal(norm, 0,1,0).endVertex();
-        consumer.vertex(mat, x2, y1, 0).color(1f,1f,1f,1f).uv(0.0f, v)
-            .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
-            .normal(norm, 0,1,0).endVertex();
-        consumer.vertex(mat, x2, y2, 0).color(1f,1f,1f,1f).uv(0.0f, 1f-v)
-            .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
-            .normal(norm, 0,1,0).endVertex();
-        consumer.vertex(mat, x1, y2, 0).color(1f,1f,1f,1f).uv(1.0f, 1f-v)
-            .overlayCoords(OverlayTexture.NO_OVERLAY).uv2(packedLight)
-            .normal(norm, 0,1,0).endVertex();
+    private void renderFire(PoseStack poseStack, MultiBufferSource bufferSource,
+                             ResourceLocation texture, float f, float f1,
+                             int packedLight, float rotation) {
+        poseStack.pushPose();
+        poseStack.mulPose(Axis.YP.rotationDegrees(rotation));
+
+        float x0 = -f;
+        float x1 = f;
+        float y0 = 0.0f;
+        float y1 = 1.0f;
+        float z = 0.001f - (rotation > 0 ? 0.001f : 0.0f);
+
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat = pose.pose();
+        Matrix3f norm = pose.normal();
+
+        // Bottom quad
+        addVertex(consumer, mat, norm, x0, y0, z, 0, f1, packedLight);
+        addVertex(consumer, mat, norm, x1, y0, z, 1, f1, packedLight);
+        addVertex(consumer, mat, norm, x1, y1, z, 1, 0, packedLight);
+        addVertex(consumer, mat, norm, x0, y1, z, 0, 0, packedLight);
+
+        // Back face
+        addVertex(consumer, mat, norm, x1, y0, z, 0, f1, packedLight);
+        addVertex(consumer, mat, norm, x0, y0, z, 1, f1, packedLight);
+        addVertex(consumer, mat, norm, x0, y1, z, 1, 0, packedLight);
+        addVertex(consumer, mat, norm, x1, y1, z, 0, 0, packedLight);
+
+        poseStack.popPose();
+    }
+
+    private void addVertex(VertexConsumer consumer, Matrix4f mat, Matrix3f norm,
+                            float x, float y, float z, float u, float v, int packedLight) {
+        consumer.vertex(mat, x - 0.5f, y, z)
+            .color(1f, 1f, 1f, 1f)
+            .uv(u, v)
+            .overlayCoords(OverlayTexture.NO_OVERLAY)
+            .uv2(packedLight)
+            .normal(norm, 0, 1, 0)
+            .endVertex();
     }
 }
