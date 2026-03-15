@@ -58,7 +58,6 @@ public class EnchantMod {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModEnchantments.ENCHANTMENTS.register(modBus);
         ModEffects.MOB_EFFECTS.register(modBus);
-        ModParticles.PARTICLE_TYPES.register(modBus);
         MinecraftForge.EVENT_BUS.register(this);
         LOGGER.info("[EnchantMod] Loaded!");
     }
@@ -177,36 +176,36 @@ public class EnchantMod {
             double x = entity.getX();
             double y = entity.getY();
             double z = entity.getZ();
-            float w = entity.getBbWidth() * 0.5f;
+            float w = entity.getBbWidth();
             float h = entity.getBbHeight();
 
-            // Blue sparks - 3 per tick, fly upward around the body
+            // Soul fire flame particles (vanilla blue fire from nether) - fly upward around body
             for (int i = 0; i < 3; i++) {
-                double ox = (RANDOM.nextDouble() - 0.5) * w * 2.2;
-                double oy = RANDOM.nextDouble() * h;
-                double oz = (RANDOM.nextDouble() - 0.5) * w * 2.2;
+                double ox = (RANDOM.nextDouble() - 0.5) * w * 1.4;
+                double oy = 0.3 + RANDOM.nextDouble() * h * 0.8;
+                double oz = (RANDOM.nextDouble() - 0.5) * w * 1.4;
                 serverLevel.sendParticles(
-                    ModParticles.BLUE_SPARK.get(),
+                    net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME,
                     x + ox, y + oy, z + oz,
                     1,
-                    0, 0, 0,
-                    0.0
+                    0.0, 0.05, 0.0,
+                    0.01
                 );
             }
 
-            // Soul sand block shards - vanilla BLOCK particle, like walking on soul sand
-            if (entity.tickCount % 3 == 0) {
-                double ox = (RANDOM.nextDouble() - 0.5) * w * 2.0;
-                double oz = (RANDOM.nextDouble() - 0.5) * w * 2.0;
+            // Soul sand block shards - spawn around feet every 2 ticks
+            if (entity.tickCount % 2 == 0) {
+                double ox = (RANDOM.nextDouble() - 0.5) * w * 1.2;
+                double oz = (RANDOM.nextDouble() - 0.5) * w * 1.2;
                 serverLevel.sendParticles(
                     new net.minecraft.core.particles.BlockParticleOption(
                         net.minecraft.core.particles.ParticleTypes.BLOCK,
                         net.minecraft.world.level.block.Blocks.SOUL_SAND.defaultBlockState()
                     ),
-                    x + ox, y + 0.1, z + oz,
-                    3,
-                    0.05, 0.1, 0.05,
-                    0.08
+                    x + ox, y + 0.05, z + oz,
+                    4,
+                    0.08, 0.15, 0.08,
+                    0.05
                 );
             }
         }
