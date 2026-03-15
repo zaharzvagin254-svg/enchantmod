@@ -20,6 +20,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AnvilUpdateEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.TickEvent;
@@ -72,11 +73,6 @@ public class EnchantMod {
         return false;
     }
 
-    private boolean hasFireEnchant(ItemStack stack) {
-        return EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, stack) > 0
-            || EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, stack) > 0;
-    }
-
     private boolean hasInfernum(ItemStack stack) {
         return EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), stack) > 0;
     }
@@ -111,7 +107,7 @@ public class EnchantMod {
     public void onLivingHurt(LivingHurtEvent event) {
         LivingEntity target = event.getEntity();
 
-        // Block vanilla fire damage while blue hellfire is active
+        // Block ALL fire damage while blue hellfire is active
         if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
             if (target.hasEffect(ModEffects.BLUE_HELLFIRE.get())) {
                 event.setCanceled(true);
@@ -143,12 +139,20 @@ public class EnchantMod {
 
         // Infernum - sword
         if (isSword(weapon) && hasInfernum(weapon)) {
-            // Apply blue hellfire effect for 6 seconds (120 ticks)
             target.addEffect(new MobEffectInstance(
                 ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
             ));
-            // Cancel vanilla fire from Fire Aspect
-            target.clearFire();
+        }
+    }
+
+    // Every tick: if target has blue hellfire - keep vanilla fire cleared
+    @SubscribeEvent
+    public void onLivingTick(LivingEvent.LivingTickEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
+        // Keep vanilla fire gone every single tick
+        if (entity.getRemainingFireTicks() > 0) {
+            entity.setRemainingFireTicks(-1);
         }
     }
 
@@ -170,7 +174,6 @@ public class EnchantMod {
                     hitTarget.addEffect(new MobEffectInstance(
                         ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
                     ));
-                    hitTarget.clearFire();
                 }
             }
         }
