@@ -20,7 +20,6 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AnvilUpdateEvent;
-import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.TickEvent;
@@ -110,6 +109,16 @@ public class EnchantMod {
 
     @SubscribeEvent
     public void onLivingHurt(LivingHurtEvent event) {
+        LivingEntity target = event.getEntity();
+
+        // Block vanilla fire damage while blue hellfire is active
+        if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
+            if (target.hasEffect(ModEffects.BLUE_HELLFIRE.get())) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
 
@@ -132,18 +141,14 @@ public class EnchantMod {
             }
         }
 
-        if (isSword(weapon) && hasInfernum(weapon) && hasFireEnchant(weapon)) {
-            LivingEntity target = event.getEntity();
+        // Infernum - sword
+        if (isSword(weapon) && hasInfernum(weapon)) {
+            // Apply blue hellfire effect for 6 seconds (120 ticks)
             target.addEffect(new MobEffectInstance(
-                ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
+                ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
             ));
-        }
-
-        if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
-            LivingEntity target = event.getEntity();
-            if (target.hasEffect(ModEffects.BLUE_HELLFIRE.get())) {
-                event.setCanceled(true);
-            }
+            // Cancel vanilla fire from Fire Aspect
+            target.clearFire();
         }
     }
 
@@ -158,12 +163,14 @@ public class EnchantMod {
         ItemStack offHand = player.getOffhandItem();
         ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
 
-        if (bow != null && hasInfernum(bow) && hasFireEnchant(bow)) {
+        // Infernum - bow
+        if (bow != null && hasInfernum(bow)) {
             if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
-                if (entityHit.getEntity() instanceof LivingEntity target) {
-                    target.addEffect(new MobEffectInstance(
-                        ModEffects.BLUE_HELLFIRE.get(), 100, 0, false, false
+                if (entityHit.getEntity() instanceof LivingEntity hitTarget) {
+                    hitTarget.addEffect(new MobEffectInstance(
+                        ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
                     ));
+                    hitTarget.clearFire();
                 }
             }
         }
