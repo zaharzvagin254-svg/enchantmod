@@ -1,6 +1,5 @@
 package com.enchantmod.render;
 
-import com.enchantmod.EnchantMod;
 import com.enchantmod.ModEffects;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -27,8 +26,6 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
     private static final ResourceLocation FIRE_1 =
         new ResourceLocation("enchantmod", "textures/block/blue_fire_1.png");
 
-    private static boolean logged = false;
-
     public BlueFireRenderLayer(LivingEntityRenderer<T, M> renderer) {
         super(renderer);
     }
@@ -38,16 +35,7 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                        T entity, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 
-        boolean hasEffect = entity.hasEffect(ModEffects.BLUE_HELLFIRE.get());
-
-        if (!logged) {
-            EnchantMod.LOGGER.info("[BlueFireRenderLayer] render() called, hasEffect={}", hasEffect);
-            logged = true;
-        }
-
-        if (!hasEffect) return;
-
-        EnchantMod.LOGGER.info("[BlueFireRenderLayer] Drawing blue fire on entity {}", entity.getType());
+        if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
         poseStack.pushPose();
 
