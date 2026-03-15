@@ -35,17 +35,14 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                        T entity, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 
-        
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
         poseStack.pushPose();
 
         float w = entity.getBbWidth() * 1.4f;
         float h = entity.getBbHeight() + 0.5f;
-
         poseStack.scale(w, h, w);
 
-        
         renderSlice(poseStack, bufferSource, FIRE_0, 0f, packedLight);
         renderSlice(poseStack, bufferSource, FIRE_1, 90f, packedLight);
 
@@ -56,20 +53,18 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                                ResourceLocation texture, float yRot, int packedLight) {
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
-        poseStack.translate(0, 0, -0.3 + (yRot > 0 ? 0.001 : 0));
+        poseStack.translate(0, 0, yRot > 0 ? -0.001f : 0.001f);
 
         VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat = pose.pose();
         Matrix3f norm = pose.normal();
 
-        
         vertex(consumer, mat, norm, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 0.0f, 0.0f, 1.0f, 1.0f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 0.5f, 0.0f, 1.0f, 0.5f, packedLight);
         vertex(consumer, mat, norm, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, packedLight);
 
-        
         vertex(consumer, mat, norm, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 0.5f, 0.0f, 1.0f, 0.5f, packedLight);
         vertex(consumer, mat, norm,  0.5f, 1.0f, 0.0f, 1.0f, 0.0f, packedLight);
