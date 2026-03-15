@@ -171,6 +171,16 @@ public class EnchantMod {
             entity.setRemainingFireTicks(-1);
         }
 
+        // Wither ambient sound every 50 ticks, high pitch, quiet
+        if (entity.tickCount % 50 == 0) {
+            entity.level().playSound(null,
+                entity.getX(), entity.getY(), entity.getZ(),
+                SoundEvents.WITHER_AMBIENT,
+                SoundSource.HOSTILE,
+                0.12f, 1.4f
+            );
+        }
+
         // Spawn particles server-side (sendParticles syncs to clients automatically)
         if (!entity.level().isClientSide() && entity.level() instanceof ServerLevel serverLevel) {
             double x = entity.getX();
