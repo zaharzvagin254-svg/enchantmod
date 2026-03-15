@@ -153,11 +153,9 @@ public class EnchantMod {
         }
 
         // Infernum - sword
-        LOGGER.info("[EnchantMod] onLivingHurt: weapon={}, isSword={}, hasInfernum={}",
-            weapon.getItem(), isSword(weapon), hasInfernum(weapon));
         if (isSword(weapon) && hasInfernum(weapon)) {
             target.addEffect(new MobEffectInstance(
-                ModEffects.BLUE_HELLFIRE.get(), 120, 0, true, false
+                ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
             ));
         }
     }
@@ -189,7 +187,7 @@ public class EnchantMod {
             if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
                 if (entityHit.getEntity() instanceof LivingEntity hitTarget) {
                     hitTarget.addEffect(new MobEffectInstance(
-                        ModEffects.BLUE_HELLFIRE.get(), 120, 0, true, false
+                        ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
                     ));
                 }
             }
