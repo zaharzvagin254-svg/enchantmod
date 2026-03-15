@@ -45,11 +45,10 @@ public class BlastShotEnchantment extends Enchantment {
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
-        // Нельзя комбинировать с Infinity, Multishot, Piercing, Fire Aspect, Multishot
         if (other == Enchantments.INFINITY_ARROWS) return false;
         if (other == Enchantments.MULTISHOT) return false;
         if (other == Enchantments.PIERCING) return false;
-        if (other == Enchantments.FLAMING_ARROWS) return false; // Воспламенение
+        if (other == Enchantments.FLAMING_ARROWS) return false;
         return super.checkCompatibility(other);
     }
 }
