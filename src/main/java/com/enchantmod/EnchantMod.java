@@ -103,8 +103,8 @@ public class EnchantMod {
     // Check if entity is in water or rain
     private boolean isInWaterOrRain(LivingEntity entity) {
         if (entity.isInWater()) return true;
-        if (entity.isInRain()) return true;
-        // Also check if submerged in water fluid
+        // Check rain: level is raining and entity is exposed to sky
+        if (entity.level().isRaining() && entity.level().canSeeSky(entity.blockPosition())) return true;
         FluidState fluid = entity.level().getFluidState(entity.blockPosition());
         if (fluid.is(Fluids.WATER) || fluid.is(Fluids.FLOWING_WATER)) return true;
         return false;
