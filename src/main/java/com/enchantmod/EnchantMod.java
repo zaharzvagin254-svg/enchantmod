@@ -157,7 +157,7 @@ public class EnchantMod {
             weapon.getItem(), isSword(weapon), hasInfernum(weapon));
         if (isSword(weapon) && hasInfernum(weapon)) {
             target.addEffect(new MobEffectInstance(
-                ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
+                ModEffects.BLUE_HELLFIRE.get(), 120, 0, true, false
             ));
         }
     }
@@ -189,7 +189,7 @@ public class EnchantMod {
             if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
                 if (entityHit.getEntity() instanceof LivingEntity hitTarget) {
                     hitTarget.addEffect(new MobEffectInstance(
-                        ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
+                        ModEffects.BLUE_HELLFIRE.get(), 120, 0, true, false
                     ));
                 }
             }
