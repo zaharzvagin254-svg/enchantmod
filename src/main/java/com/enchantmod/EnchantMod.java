@@ -179,8 +179,8 @@ public class EnchantMod {
             float w = entity.getBbWidth();
             float h = entity.getBbHeight();
 
-            // Soul fire flame particles (vanilla blue fire from nether) - fly upward around body
-            for (int i = 0; i < 3; i++) {
+            // Soul fire flame - 2 per tick, random positions around body
+            for (int i = 0; i < 2; i++) {
                 double ox = (RANDOM.nextDouble() - 0.5) * w * 1.4;
                 double oy = 0.3 + RANDOM.nextDouble() * h * 0.8;
                 double oz = (RANDOM.nextDouble() - 0.5) * w * 1.4;
@@ -193,19 +193,19 @@ public class EnchantMod {
                 );
             }
 
-            // Soul sand block shards - spawn around feet every 2 ticks
-            if (entity.tickCount % 2 == 0) {
-                double ox = (RANDOM.nextDouble() - 0.5) * w * 1.2;
-                double oz = (RANDOM.nextDouble() - 0.5) * w * 1.2;
+            // Soul escape (skull particles) - orbit around mob, 1 every 4 ticks
+            if (entity.tickCount % 4 == 0) {
+                double angle = (entity.tickCount * 18.0) * Math.PI / 180.0;
+                double radius = w * 1.1 + 0.3;
+                double ox = Math.cos(angle) * radius;
+                double oz = Math.sin(angle) * radius;
+                double oy = 0.5 + h * 0.4 + Math.sin(angle * 0.7) * 0.3;
                 serverLevel.sendParticles(
-                    new net.minecraft.core.particles.BlockParticleOption(
-                        net.minecraft.core.particles.ParticleTypes.BLOCK,
-                        net.minecraft.world.level.block.Blocks.SOUL_SAND.defaultBlockState()
-                    ),
-                    x + ox, y + 0.05, z + oz,
-                    4,
-                    0.08, 0.15, 0.08,
-                    0.05
+                    net.minecraft.core.particles.ParticleTypes.SOUL,
+                    x + ox, y + oy, z + oz,
+                    1,
+                    0.0, 0.02, 0.0,
+                    0.0
                 );
             }
         }
