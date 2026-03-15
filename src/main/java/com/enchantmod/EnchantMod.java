@@ -118,6 +118,21 @@ public class EnchantMod {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
 
+        // Block Fire Aspect and Flame if Infernum is on the weapon
+        if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
+            if (hasInfernum(weapon)) {
+                event.setCanceled(true);
+                return;
+            }
+            ItemStack mainBow = player.getMainHandItem();
+            ItemStack offBow = player.getOffhandItem();
+            if ((isBow(mainBow) && hasInfernum(mainBow)) ||
+                (isBow(offBow) && hasInfernum(offBow))) {
+                event.setCanceled(true);
+                return;
+            }
+        }
+
         // Vampirism
         if (isSword(weapon)) {
             int level = EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.VAMPIRISM.get(), weapon);
