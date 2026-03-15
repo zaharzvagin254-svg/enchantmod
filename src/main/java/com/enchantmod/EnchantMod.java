@@ -58,6 +58,7 @@ public class EnchantMod {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         ModEnchantments.ENCHANTMENTS.register(modBus);
         ModEffects.MOB_EFFECTS.register(modBus);
+        ModParticles.PARTICLE_TYPES.register(modBus);
         MinecraftForge.EVENT_BUS.register(this);
         LOGGER.info("[EnchantMod] Loaded!");
     }
@@ -160,14 +161,54 @@ public class EnchantMod {
         }
     }
 
-    // Every tick: if target has blue hellfire - keep vanilla fire cleared
+    // Every tick: if target has blue hellfire - keep vanilla fire cleared, spawn particles
     @SubscribeEvent
     public void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
+
         // Keep vanilla fire gone every single tick
         if (entity.getRemainingFireTicks() > 0) {
             entity.setRemainingFireTicks(-1);
+        }
+
+        // Spawn particles server-side (sendParticles syncs to clients automatically)
+        if (!entity.level().isClientSide() && entity.level() instanceof ServerLevel serverLevel) {
+            double x = entity.getX();
+            double y = entity.getY();
+            double z = entity.getZ();
+            float w = entity.getBbWidth() * 0.5f;
+            float h = entity.getBbHeight();
+
+            // Blue sparks - 3 per tick, fly upward around the body
+            for (int i = 0; i < 3; i++) {
+                double ox = (RANDOM.nextDouble() - 0.5) * w * 2.2;
+                double oy = RANDOM.nextDouble() * h;
+                double oz = (RANDOM.nextDouble() - 0.5) * w * 2.2;
+                serverLevel.sendParticles(
+                    ModParticles.BLUE_SPARK.get(),
+                    x + ox, y + oy, z + oz,
+                    1,
+                    0, 0, 0,
+                    0.0
+                );
+            }
+
+            // Soul sand block shards - vanilla BLOCK particle, like walking on soul sand
+            if (entity.tickCount % 3 == 0) {
+                double ox = (RANDOM.nextDouble() - 0.5) * w * 2.0;
+                double oz = (RANDOM.nextDouble() - 0.5) * w * 2.0;
+                serverLevel.sendParticles(
+                    new net.minecraft.core.particles.BlockParticleOption(
+                        net.minecraft.core.particles.ParticleTypes.BLOCK,
+                        net.minecraft.world.level.block.Blocks.SOUL_SAND.defaultBlockState()
+                    ),
+                    x + ox, y + 0.1, z + oz,
+                    3,
+                    0.05, 0.1, 0.05,
+                    0.08
+                );
+            }
         }
     }
 
