@@ -45,7 +45,6 @@ public class BloodLeechEnchantment extends Enchantment {
     @Override
     public boolean isDiscoverable() { return true; }
 
-    // Совместимо со всеми зачарованиями
     @Override
     public boolean checkCompatibility(Enchantment other) {
         return super.checkCompatibility(other);
