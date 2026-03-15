@@ -3,6 +3,7 @@ package com.enchantmod.render;
 import com.enchantmod.EnchantMod;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -15,19 +16,26 @@ public class ClientEventHandler {
     @SubscribeEvent
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static void addLayers(EntityRenderersEvent.AddLayers event) {
+        int count = 0;
+
         for (String skin : event.getSkins()) {
-            Object renderer = event.getSkin(skin);
+            var renderer = event.getSkin(skin);
             if (renderer instanceof LivingEntityRenderer r) {
                 r.addLayer(new BlueFireRenderLayer(r));
+                count++;
             }
         }
+
         for (EntityType<?> type : ForgeRegistries.ENTITY_TYPES.getValues()) {
             try {
-                Object renderer = event.getRenderer((EntityType) type);
+                var renderer = event.getRenderer((EntityType) type);
                 if (renderer instanceof LivingEntityRenderer r) {
                     r.addLayer(new BlueFireRenderLayer(r));
+                    count++;
                 }
             } catch (Exception ignored) {}
         }
+
+        EnchantMod.LOGGER.info("[EnchantMod] BlueFireRenderLayer added to {} renderers", count);
     }
 }
