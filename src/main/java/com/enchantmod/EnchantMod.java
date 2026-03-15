@@ -153,6 +153,8 @@ public class EnchantMod {
         }
 
         // Infernum - sword
+        LOGGER.info("[EnchantMod] onLivingHurt: weapon={}, isSword={}, hasInfernum={}",
+            weapon.getItem(), isSword(weapon), hasInfernum(weapon));
         if (isSword(weapon) && hasInfernum(weapon)) {
             target.addEffect(new MobEffectInstance(
                 ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
