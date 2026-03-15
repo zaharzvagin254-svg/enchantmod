@@ -1,5 +1,6 @@
 package com.enchantmod.render;
 
+import com.enchantmod.EnchantMod;
 import com.enchantmod.ModEffects;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -26,6 +27,8 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
     private static final ResourceLocation FIRE_1 =
         new ResourceLocation("enchantmod", "textures/block/blue_fire_1.png");
 
+    private static boolean logged = false;
+
     public BlueFireRenderLayer(LivingEntityRenderer<T, M> renderer) {
         super(renderer);
     }
@@ -35,15 +38,21 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
                        T entity, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
 
-        if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
+        boolean hasEffect = entity.hasEffect(ModEffects.BLUE_HELLFIRE.get());
 
-        // Exactly how vanilla EntityRenderer renders fire on entities
-        // Copied from net.minecraft.client.renderer.entity.EntityRenderer#renderFlame
+        if (!logged) {
+            EnchantMod.LOGGER.info("[BlueFireRenderLayer] render() called, hasEffect={}", hasEffect);
+            logged = true;
+        }
+
+        if (!hasEffect) return;
+
+        EnchantMod.LOGGER.info("[BlueFireRenderLayer] Drawing blue fire on entity {}", entity.getType());
+
         poseStack.pushPose();
 
         float scaleXZ = entity.getBbWidth() * 1.4f;
         float scaleY = entity.getBbHeight() + 0.5f;
-
         poseStack.scale(scaleXZ, scaleY, scaleXZ);
 
         float f = 0.5f;
@@ -61,27 +70,23 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
         poseStack.pushPose();
         poseStack.mulPose(Axis.YP.rotationDegrees(yRotDeg));
 
-        float zOffset = -0.5f + (yRotDeg > 0 ? 0.001f : 0.0f);
+        float z = -0.5f + (yRotDeg > 0 ? 0.001f : 0.0f);
 
         PoseStack.Pose pose = poseStack.last();
         Matrix4f mat = pose.pose();
         Matrix3f norm = pose.normal();
 
-        VertexConsumer consumer = bufferSource.getBuffer(
-            RenderType.entityCutoutNoCull(texture)
-        );
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
 
-        // Lower quad
-        addVertex(consumer, mat, norm, -f, 0f,    zOffset, 0f, f1,   packedLight);
-        addVertex(consumer, mat, norm,  f, 0f,    zOffset, 1f, f1,   packedLight);
-        addVertex(consumer, mat, norm,  f, 1f,    zOffset, 1f, 0f,   packedLight);
-        addVertex(consumer, mat, norm, -f, 1f,    zOffset, 0f, 0f,   packedLight);
+        addVertex(consumer, mat, norm, -f, 0f, z, 0f, f1,  packedLight);
+        addVertex(consumer, mat, norm,  f, 0f, z, 1f, f1,  packedLight);
+        addVertex(consumer, mat, norm,  f, 1f, z, 1f, 0f,  packedLight);
+        addVertex(consumer, mat, norm, -f, 1f, z, 0f, 0f,  packedLight);
 
-        // Upper quad (offset upward)
-        addVertex(consumer, mat, norm, -f, -0.5f, zOffset, 0f, f1,   packedLight);
-        addVertex(consumer, mat, norm,  f, -0.5f, zOffset, 1f, f1,   packedLight);
-        addVertex(consumer, mat, norm,  f,  0.5f, zOffset, 1f, 0f,   packedLight);
-        addVertex(consumer, mat, norm, -f,  0.5f, zOffset, 0f, 0f,   packedLight);
+        addVertex(consumer, mat, norm, -f, -0.5f, z, 0f, f1,  packedLight);
+        addVertex(consumer, mat, norm,  f, -0.5f, z, 1f, f1,  packedLight);
+        addVertex(consumer, mat, norm,  f,  0.5f, z, 1f, 0f,  packedLight);
+        addVertex(consumer, mat, norm, -f,  0.5f, z, 0f, 0f,  packedLight);
 
         poseStack.popPose();
     }
