@@ -15,11 +15,14 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.AnvilUpdateEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
@@ -77,6 +80,36 @@ public class EnchantMod {
         return EnchantmentHelper.getItemEnchantmentLevel(ModEnchantments.INFERNUM.get(), stack) > 0;
     }
 
+    // Returns duration in ticks for BLUE_HELLFIRE based on Fire Aspect / Flame level.
+    // Returns 0 if neither enchantment is present.
+    private int getInfernumDuration(ItemStack weapon, boolean isBowWeapon) {
+        if (isBowWeapon) {
+            int flame = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FLAMING_ARROWS, weapon);
+            if (flame > 0) return 100; // 5 seconds
+            return 0;
+        } else {
+            int fireAspect = EnchantmentHelper.getItemEnchantmentLevel(Enchantments.FIRE_ASPECT, weapon);
+            if (fireAspect >= 2) return 160; // 8 seconds
+            if (fireAspect == 1) return 80;  // 4 seconds
+            return 0;
+        }
+    }
+
+    // Check if entity is immune to fire (blazes, ghasts, nether mobs, etc.)
+    private boolean isFireImmune(LivingEntity entity) {
+        return entity.fireImmune();
+    }
+
+    // Check if entity is in water or rain
+    private boolean isInWaterOrRain(LivingEntity entity) {
+        if (entity.isInWater()) return true;
+        if (entity.isInRain()) return true;
+        // Also check if submerged in water fluid
+        FluidState fluid = entity.level().getFluidState(entity.blockPosition());
+        if (fluid.is(Fluids.WATER) || fluid.is(Fluids.FLOWING_WATER)) return true;
+        return false;
+    }
+
     @SubscribeEvent
     public void onAnvilUpdate(AnvilUpdateEvent event) {
         ItemStack left = event.getLeft();
@@ -118,15 +151,14 @@ public class EnchantMod {
         if (!(event.getSource().getEntity() instanceof Player player)) return;
         ItemStack weapon = player.getMainHandItem();
 
-        // Block Fire Aspect and Flame if Infernum is on the weapon
+        // Block vanilla fire from Fire Aspect / Flame when Infernum is present
         if (event.getSource().is(DamageTypeTags.IS_FIRE)) {
             if (hasInfernum(weapon)) {
                 event.setCanceled(true);
                 return;
             }
-            ItemStack mainBow = player.getMainHandItem();
             ItemStack offBow = player.getOffhandItem();
-            if ((isBow(mainBow) && hasInfernum(mainBow)) ||
+            if ((isBow(weapon) && hasInfernum(weapon)) ||
                 (isBow(offBow) && hasInfernum(offBow))) {
                 event.setCanceled(true);
                 return;
@@ -152,19 +184,29 @@ public class EnchantMod {
             }
         }
 
-        // Infernum - sword
+        // Infernum - sword hit
         if (isSword(weapon) && hasInfernum(weapon)) {
+            // Skip fire-immune mobs
+            if (isFireImmune(target)) return;
+            int duration = getInfernumDuration(weapon, false);
+            if (duration <= 0) return;
             target.addEffect(new MobEffectInstance(
-                ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
+                ModEffects.BLUE_HELLFIRE.get(), duration, 0, false, false
             ));
         }
     }
 
-    // Every tick: if target has blue hellfire - keep vanilla fire cleared, spawn particles
+    // Every tick: water/rain extinguishes effect, fire kept clear, particles, sound
     @SubscribeEvent
     public void onLivingTick(LivingEvent.LivingTickEvent event) {
         LivingEntity entity = event.getEntity();
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
+
+        // Water or rain extinguishes the effect
+        if (isInWaterOrRain(entity)) {
+            entity.removeEffect(ModEffects.BLUE_HELLFIRE.get());
+            return;
+        }
 
         // Keep vanilla fire gone every single tick
         if (entity.getRemainingFireTicks() > 0) {
@@ -181,7 +223,7 @@ public class EnchantMod {
             );
         }
 
-        // Spawn particles server-side (sendParticles syncs to clients automatically)
+        // Spawn particles server-side
         if (!entity.level().isClientSide() && entity.level() instanceof ServerLevel serverLevel) {
             double x = entity.getX();
             double y = entity.getY();
@@ -197,13 +239,11 @@ public class EnchantMod {
                 serverLevel.sendParticles(
                     net.minecraft.core.particles.ParticleTypes.SOUL_FIRE_FLAME,
                     x + ox, y + oy, z + oz,
-                    1,
-                    0.0, 0.05, 0.0,
-                    0.01
+                    1, 0.0, 0.05, 0.0, 0.01
                 );
             }
 
-            // Soul escape (skull particles) - orbit around mob, 1 every 4 ticks
+            // Soul particles - orbit around mob, 1 every 4 ticks
             if (entity.tickCount % 4 == 0) {
                 double angle = (entity.tickCount * 18.0) * Math.PI / 180.0;
                 double radius = w * 1.1 + 0.3;
@@ -213,11 +253,21 @@ public class EnchantMod {
                 serverLevel.sendParticles(
                     net.minecraft.core.particles.ParticleTypes.SOUL,
                     x + ox, y + oy, z + oz,
-                    1,
-                    0.0, 0.02, 0.0,
-                    0.0
+                    1, 0.0, 0.02, 0.0, 0.0
                 );
             }
+        }
+    }
+
+    // On death while BLUE_HELLFIRE is active: drop cooked loot (same as vanilla fire death)
+    @SubscribeEvent
+    public void onLivingDeath(LivingDeathEvent event) {
+        LivingEntity entity = event.getEntity();
+        if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
+        // Set fire ticks so vanilla loot table sees "died by fire" and gives cooked drops
+        // We use a very high value so it won't be cleared before loot is rolled
+        if (entity.getRemainingFireTicks() <= 0) {
+            entity.setSecondsOnFire(100);
         }
     }
 
@@ -232,13 +282,19 @@ public class EnchantMod {
         ItemStack offHand = player.getOffhandItem();
         ItemStack bow = isBow(mainHand) ? mainHand : isBow(offHand) ? offHand : null;
 
-        // Infernum - bow
+        // Infernum - bow hit
         if (bow != null && hasInfernum(bow)) {
             if (event.getRayTraceResult() instanceof EntityHitResult entityHit) {
                 if (entityHit.getEntity() instanceof LivingEntity hitTarget) {
-                    hitTarget.addEffect(new MobEffectInstance(
-                        ModEffects.BLUE_HELLFIRE.get(), 120, 0, false, false
-                    ));
+                    // Skip fire-immune mobs
+                    if (!isFireImmune(hitTarget)) {
+                        int duration = getInfernumDuration(bow, true);
+                        if (duration > 0) {
+                            hitTarget.addEffect(new MobEffectInstance(
+                                ModEffects.BLUE_HELLFIRE.get(), duration, 0, false, false
+                            ));
+                        }
+                    }
                 }
             }
         }
