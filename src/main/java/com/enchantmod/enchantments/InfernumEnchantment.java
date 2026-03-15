@@ -4,7 +4,6 @@ import net.minecraft.tags.ItemTags;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentCategory;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.BowItem;
@@ -52,9 +51,6 @@ public class InfernumEnchantment extends Enchantment {
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
-        // Infernum conflicts with Fire Aspect and Flame
-        if (other == Enchantments.FIRE_ASPECT) return false;
-        if (other == Enchantments.FLAMING_ARROWS) return false;
         return super.checkCompatibility(other);
     }
 }
