@@ -1,22 +1,20 @@
 package com.enchantmod.render;
 
 import com.enchantmod.ModEffects;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.model.EntityModel;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 @OnlyIn(Dist.CLIENT)
@@ -39,48 +37,63 @@ public class BlueFireRenderLayer<T extends LivingEntity, M extends EntityModel<T
 
         if (!entity.hasEffect(ModEffects.BLUE_HELLFIRE.get())) return;
 
-        Tesselator tesselator = Tesselator.getInstance();
-
+        // Exactly how vanilla EntityRenderer renders fire on entities
+        // Copied from net.minecraft.client.renderer.entity.EntityRenderer#renderFlame
         poseStack.pushPose();
 
-        float w = entity.getBbWidth() * 1.4f;
-        float h = entity.getBbHeight() + 0.5f;
-        poseStack.scale(w, h, w);
+        float scaleXZ = entity.getBbWidth() * 1.4f;
+        float scaleY = entity.getBbHeight() + 0.5f;
 
-        renderFirePass(poseStack, tesselator, FIRE_0, 0f);
-        renderFirePass(poseStack, tesselator, FIRE_1, 90f);
+        poseStack.scale(scaleXZ, scaleY, scaleXZ);
+
+        float f = 0.5f;
+        float f1 = entity.getBbHeight() / scaleY;
+
+        renderQuads(poseStack, bufferSource, FIRE_0, f, f1, packedLight, 0.0f);
+        renderQuads(poseStack, bufferSource, FIRE_1, f, f1, packedLight, 90.0f);
 
         poseStack.popPose();
     }
 
-    private void renderFirePass(PoseStack poseStack, Tesselator tesselator,
-                                  ResourceLocation texture, float yRot) {
+    private static void renderQuads(PoseStack poseStack, MultiBufferSource bufferSource,
+                                      ResourceLocation texture, float f, float f1,
+                                      int packedLight, float yRotDeg) {
         poseStack.pushPose();
-        poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
+        poseStack.mulPose(Axis.YP.rotationDegrees(yRotDeg));
 
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, texture);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
+        float zOffset = -0.5f + (yRotDeg > 0 ? 0.001f : 0.0f);
 
-        Matrix4f mat = poseStack.last().pose();
-        BufferBuilder buf = tesselator.getBuilder();
-        buf.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f mat = pose.pose();
+        Matrix3f norm = pose.normal();
 
-        buf.vertex(mat, -0.5f, 0.0f, 0.0f).uv(0f, 1f).endVertex();
-        buf.vertex(mat,  0.5f, 0.0f, 0.0f).uv(1f, 1f).endVertex();
-        buf.vertex(mat,  0.5f, 0.5f, 0.0f).uv(1f, 0.5f).endVertex();
-        buf.vertex(mat, -0.5f, 0.5f, 0.0f).uv(0f, 0.5f).endVertex();
+        VertexConsumer consumer = bufferSource.getBuffer(
+            RenderType.entityCutoutNoCull(texture)
+        );
 
-        buf.vertex(mat, -0.5f, 0.5f, 0.0f).uv(0f, 0.5f).endVertex();
-        buf.vertex(mat,  0.5f, 0.5f, 0.0f).uv(1f, 0.5f).endVertex();
-        buf.vertex(mat,  0.5f, 1.0f, 0.0f).uv(1f, 0f).endVertex();
-        buf.vertex(mat, -0.5f, 1.0f, 0.0f).uv(0f, 0f).endVertex();
+        // Lower quad
+        addVertex(consumer, mat, norm, -f, 0f,    zOffset, 0f, f1,   packedLight);
+        addVertex(consumer, mat, norm,  f, 0f,    zOffset, 1f, f1,   packedLight);
+        addVertex(consumer, mat, norm,  f, 1f,    zOffset, 1f, 0f,   packedLight);
+        addVertex(consumer, mat, norm, -f, 1f,    zOffset, 0f, 0f,   packedLight);
 
-        tesselator.end();
-
-        RenderSystem.disableBlend();
+        // Upper quad (offset upward)
+        addVertex(consumer, mat, norm, -f, -0.5f, zOffset, 0f, f1,   packedLight);
+        addVertex(consumer, mat, norm,  f, -0.5f, zOffset, 1f, f1,   packedLight);
+        addVertex(consumer, mat, norm,  f,  0.5f, zOffset, 1f, 0f,   packedLight);
+        addVertex(consumer, mat, norm, -f,  0.5f, zOffset, 0f, 0f,   packedLight);
 
         poseStack.popPose();
+    }
+
+    private static void addVertex(VertexConsumer c, Matrix4f mat, Matrix3f norm,
+                                    float x, float y, float z, float u, float v, int light) {
+        c.vertex(mat, x, y, z)
+            .color(1f, 1f, 1f, 1f)
+            .uv(u, v)
+            .overlayCoords(OverlayTexture.NO_OVERLAY)
+            .uv2(light)
+            .normal(norm, 0f, 1f, 0f)
+            .endVertex();
     }
 }
