@@ -12,14 +12,12 @@ public class BlueHellfireEffect extends MobEffect {
 
     @Override
     public void applyEffectTick(LivingEntity entity, int amplifier) {
-        // Наносим урон огнём каждые 20 тиков (1 секунда)
-        // x2 от обычного Fire Aspect (обычный 1 урон, наш 2)
+        // x2 damage compared to vanilla fire (vanilla = 1, ours = 2)
         entity.hurt(entity.level().damageSources().inFire(), 2.0f);
     }
 
     @Override
     public boolean isDurationEffectTick(int duration, int amplifier) {
-        // Каждые 20 тиков = 1 секунда
         return duration % 20 == 0;
     }
 }
