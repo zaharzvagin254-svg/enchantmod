@@ -40,10 +40,10 @@ public class BladeFuryEnchantment extends Enchantment {
     public int getMaxCost(int level) { return 95; }
 
     @Override
-    public boolean isTradeable() { return true; }
+    public boolean isTradeable() { return false; }
 
     @Override
-    public boolean isDiscoverable() { return true; }
+    public boolean isDiscoverable() { return false; }
 
     @Override
     public boolean checkCompatibility(Enchantment other) {
