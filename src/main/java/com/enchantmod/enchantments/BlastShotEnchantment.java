@@ -12,7 +12,7 @@ public class BlastShotEnchantment extends Enchantment {
 
     public BlastShotEnchantment() {
         super(
-            Rarity.VERY_RARE,
+            Rarity.RARE,
             EnchantmentCategory.BOW,
             new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND}
         );
